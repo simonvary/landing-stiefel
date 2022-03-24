@@ -15,9 +15,9 @@ torch.manual_seed(1)
 
 # generate random matrices
 
-m = 1000        # number of samples
-n = 100         # dimension of samples
-p = 10          # number of principal components
+m = 100        # number of samples
+n = 10         # dimension of samples
+p = 2          # number of principal components
 A = torch.randn(m, p) @ torch.randn(p, n)
 init_weights = torch.randn(n, p)
 
@@ -25,17 +25,17 @@ _, _, vh = torch.linalg.svd(A, full_matrices = False)
 x_star = vh[:p,:].T
 
 # Objective: min -(1/2) * \| AX \|^2_F
-loss_star = -.5 * (torch.matmul(A, x_star) ** 2).sum()
+loss_star = -.5 * (torch.matmul(A, x_star) ** 2).sum() / m
 loss_star = loss_star.item()
 
 
-method_names = ["Retraction"] # "Landing",
-methods =  [LandingStiefelSGD] # RiemannianSGD
+method_names = ["Landing", "Retraction"] # "Retraction",
+methods =  [LandingStiefelSGD, RiemannianSGD] # RiemannianSGD
 
-learning_rate = 0.3
+learning_rate = 1e-3 # 0.3
 
 f, axes = plt.subplots(2, 1)
-for method_name, method, n_epochs in zip(method_names, methods, [500]):
+for method_name, method, n_epochs in zip(method_names, methods, [5000, 5000]):
     iterates = []
     loss_list = []
     time_list = []
@@ -50,7 +50,7 @@ for method_name, method, n_epochs in zip(method_names, methods, [500]):
     for _ in range(n_epochs):
 
         optimizer.zero_grad()
-        loss = -.5 * (torch.matmul(A, param) ** 2).sum()
+        loss = -.5 * (torch.matmul(A, param) ** 2).sum() / m
         loss.backward()
         time_list.append(time() - t0)
         loss_list.append(loss.item() - loss_star)

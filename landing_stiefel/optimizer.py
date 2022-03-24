@@ -25,7 +25,7 @@ def _check_orthogonal(param):
         )
 
 
-'''def _safe_step_size(d, a, lbda, eps):
+def _safe_step_size(d, a, lbda, eps):
     """Compute the safe step size
 
     Parameters
@@ -46,7 +46,7 @@ def _check_orthogonal(param):
     alpha = 2 * (lbda * d - a * d - 2 * lbda * d)
     beta = a ** 2 + lbda ** 2 * d ** 3 + 2 * lbda * a * d ** 2 + a ** 2 * d
     sol = (alpha + torch.sqrt(alpha ** 2 + 4 * beta * (eps - d))) / 2 / beta
-    return sol'''
+    return sol
 
 
 def _landing_direction(point, grad, lambda_regul, learning_rate, safe_step):
@@ -54,12 +54,13 @@ def _landing_direction(point, grad, lambda_regul, learning_rate, safe_step):
     distance = torch.matmul(point, torch.matmul(point.transpose(-1, -2), point)
                                         - torch.eye(p, device=point.device)
     )
-    # Orthogonal landing:
-    #distance = torch.matmul(point, point.transpose(-1, -2)) - torch.eye(
-    #    p, device=point.device
-    #)
+    landing_field = grad + lambda_regul * distance
+    ''' Orthogonal landing:
+    distance = torch.matmul(point, point.transpose(-1, -2)) - torch.eye(
+        p, device=point.device
+    )
     landing_field = torch.matmul(grad + lambda_regul * distance, point)
-    '''if safe_step:
+    if safe_step:
         d = torch.norm(distance, dim=(-1, -2))
         a = torch.norm(grad, dim=(-1, -2))
         max_step = _safe_step_size(d, a, lambda_regul, safe_step)
@@ -70,7 +71,9 @@ def _landing_direction(point, grad, lambda_regul, learning_rate, safe_step):
         step_size = torch.clip(max_step, max=learning_rate).view(
             *step_size_shape
         )
-    else:'''
+    else:
+        step_size = learning_rate
+    '''
     step_size = learning_rate
     return point - step_size * landing_field
 
