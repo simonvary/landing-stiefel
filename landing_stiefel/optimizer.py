@@ -18,10 +18,10 @@ def _check_orthogonal(param):
     ):
         raise TypeError("Parameters should be on the Stiefel manifold")
     *_, p, q = param.shape
-    if p != q:
+    if p < q:
         raise ValueError(
-            "The last two dimensions of the parameters should be the same. "
-            "Only square matrices are supported so far"
+            "The second to last dimension of the parameters should be greater or equal than its last dimension. "
+            "Only tall matrices are supported so far"
         )
 
 

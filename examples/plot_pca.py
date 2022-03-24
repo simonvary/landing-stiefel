@@ -16,25 +16,26 @@ torch.manual_seed(1)
 # generate random matrices
 
 m = 1000        # number of samples
-n = 100         # dimension
-p = 40          # number of principal components
-A = torch.randn(m, n)
+n = 100         # dimension of samples
+p = 10          # number of principal components
+A = torch.randn(m, p) @ torch.randn(p, n)
 init_weights = torch.randn(n, p)
 
 _, _, vh = torch.linalg.svd(A, full_matrices = False)
 x_star = vh[:p,:].T
 
-# Objective: (1/m) * \| AX \|^2_F
-loss_star = (torch.matmul(A, x_star) ** 2).sum() / m
+# Objective: min -(1/2) * \| AX \|^2_F
+loss_star = -.5 * (torch.matmul(A, x_star) ** 2).sum()
 loss_star = loss_star.item()
 
 
-method_names = ["Landing", "Retraction"]
-methods = [LandingStiefelSGD, RiemannianSGD]
+method_names = ["Retraction"] # "Landing",
+methods =  [LandingStiefelSGD] # RiemannianSGD
 
 learning_rate = 0.3
 
-for method_name, method, n_epochs in zip(method_names, methods, [2000, 500]):
+f, axes = plt.subplots(2, 1)
+for method_name, method, n_epochs in zip(method_names, methods, [500]):
     iterates = []
     loss_list = []
     time_list = []
@@ -49,7 +50,7 @@ for method_name, method, n_epochs in zip(method_names, methods, [2000, 500]):
     for _ in range(n_epochs):
 
         optimizer.zero_grad()
-        loss = (torch.matmul(A, param) ** 2).sum() / m
+        loss = -.5 * (torch.matmul(A, param) ** 2).sum()
         loss.backward()
         time_list.append(time() - t0)
         loss_list.append(loss.item() - loss_star)
@@ -59,9 +60,15 @@ for method_name, method, n_epochs in zip(method_names, methods, [2000, 500]):
     distance_list = []
     for matrix in iterates:
         d = (
-            torch.norm(matrix.matmul(matrix.transpose(-1, -2)) - torch.eye(p))
-            / n
+            torch.norm(matrix.transpose(-1, -2).matmul(matrix) - torch.eye(p))
         )
         distance_list.append(d.item())
     axes[0].semilogy(time_list, distance_list, label=method_name)
     axes[1].semilogy(time_list, loss_list, label=method_name)
+
+axes[0].set_xlabel("time (s.)")
+axes[1].set_xlabel("time (s.)")
+axes[0].set_ylabel("Orthogonality error")
+axes[1].set_ylabel("f - f^*")
+plt.legend()
+plt.show()
