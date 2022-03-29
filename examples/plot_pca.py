@@ -15,9 +15,9 @@ torch.manual_seed(1)
 
 # generate random matrices
 
-m = 100        # number of samples
-n = 10         # dimension of samples
-p = 2          # number of principal components
+m = 1000        # number of samples
+n = 100         # dimension of samples
+p = 20          # number of principal components
 A = torch.randn(m, p) @ torch.randn(p, n)
 init_weights = torch.randn(n, p)
 

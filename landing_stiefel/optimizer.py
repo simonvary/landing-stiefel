@@ -49,33 +49,24 @@ def _safe_step_size(d, a, lbda, eps):
     return sol
 
 
-def _landing_direction(point, grad, lambda_regul, learning_rate, safe_step):
-    *_, p = point.shape
-    distance = torch.matmul(point, torch.matmul(point.transpose(-1, -2), point)
-                                        - torch.eye(p, device=point.device)
-    )
-    landing_field = grad + lambda_regul * distance
-    ''' Orthogonal landing:
-    distance = torch.matmul(point, point.transpose(-1, -2)) - torch.eye(
-        p, device=point.device
-    )
-    landing_field = torch.matmul(grad + lambda_regul * distance, point)
-    if safe_step:
-        d = torch.norm(distance, dim=(-1, -2))
-        a = torch.norm(grad, dim=(-1, -2))
-        max_step = _safe_step_size(d, a, lambda_regul, safe_step)
-        # One step per orthogonal matrix
-        step_size_shape = list(point.shape)
-        step_size_shape[-1] = 1
-        step_size_shape[-2] = 1
-        step_size = torch.clip(max_step, max=learning_rate).view(
-            *step_size_shape
-        )
-    else:
-        step_size = learning_rate
+def _landing_direction(point, grad, lambda_regul):
+    r'''
+    Computes the relative gradient, the normal direction, and the distance 
+    towards the manifold.
     '''
-    step_size = learning_rate
-    return point - step_size * landing_field
+
+    *_, p = point.shape
+
+    XtX = torch.matmul(point.transpose(-1, -2), point)
+    GtX = torch.matmul(grad.transpose(-1, -2), point)
+    distance = XtX - torch.eye(p, device=point.device)
+
+    rel_grad = .5*(torch.matmul(grad, XtX) - torch.matmul(point, GtX))  
+    norm_dir = lambda_regul * torch.matmul(point, distance)
+    # Distance norm for _safe_step_size computation
+    distance_norm = torch.norm(distance, dim=(-1, -2))
+
+    return (rel_grad, norm_dir, distance_norm)
 
 
 class LandingStiefelSGD(OptimMixin, torch.optim.Optimizer):
@@ -120,7 +111,7 @@ class LandingStiefelSGD(OptimMixin, torch.optim.Optimizer):
         weight_decay=0,
         nesterov=False,
         stabilize=None,
-        lambda_regul=1.0,
+        lambda_regul=10.0,
         safe_step=0.5,
         check_type=True,
     ):
@@ -190,33 +181,30 @@ class LandingStiefelSGD(OptimMixin, torch.optim.Optimizer):
                             state["momentum_buffer"] = grad.clone()
 
                     grad.add_(point, alpha=weight_decay)
-                    grad = torch.matmul(
-                        grad, point.transpose(-1, -2)
-                    )  # relative gradient
-                    grad = grad - grad.transpose(-1, -2)
-                    grad /= 2.0
-                    # Adds multiplication from the right
-                    grad = torch.matmul(grad, point)
+                    rel_grad, normal_dir, distance_norm = _landing_direction(point, grad, lambda_regul)
+                    # Apply momentum to the relative gradient
                     if momentum > 0:
                         momentum_buffer = state["momentum_buffer"]
                         momentum_buffer.mul_(momentum).add_(
-                            grad, alpha=1 - dampening
+                            rel_grad, alpha=1 - dampening
                         )
                         if nesterov:
-                            grad = grad.add_(momentum_buffer, alpha=momentum)
+                            rel_grad = rel_grad.add_(momentum_buffer, alpha=momentum)
                         else:
-                            grad = momentum_buffer
-                        # landing method
-                        new_point = _landing_direction(
-                            point, grad, lambda_regul, learning_rate, safe_step
-                        )
-                        # use copy only for user facing point
-                        point.copy_(new_point)
+                            rel_grad = momentum_buffer
+                    if safe_step:
+                        d = distance_norm
+                        a = torch.norm(rel_grad, dim=(-1, -2))
+                        max_step = _safe_step_size(d, a, lambda_regul, safe_step)
+                        # One step per orthogonal matrix
+                        step_size_shape = list(point.shape)
+                        step_size_shape[-1] = 1
+                        step_size_shape[-2] = 1
+                        step_size = torch.clip(max_step, max=learning_rate).view(*step_size_shape)
                     else:
-                        new_point = _landing_direction(
-                            point, grad, lambda_regul, learning_rate, safe_step
-                        )
-                        point.copy_(new_point)
+                        step_size = learning_rate
+                    new_point = point - step_size * (rel_grad + normal_dir)
+                    point.copy_(new_point)
 
                 if (
                     group["stabilize"] is not None
