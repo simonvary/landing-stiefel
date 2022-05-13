@@ -5,7 +5,7 @@ import geoopt
 from geoopt.tensor import ManifoldParameter, ManifoldTensor
 from geoopt.optim.mixin import OptimMixin
 
-__all__ = ["LandingStiefelSGD"]
+__all__ = ["PLAMStiefelSGD"]
 
 
 def _check_orthogonal(param):
@@ -49,7 +49,7 @@ def _safe_step_size(d, a, lbda, eps):
     return sol
 
 
-def _landing_direction(point, grad, lambda_regul):
+def _plam_direction(point, grad, lambda_regul):
     r'''
     Computes the relative gradient, the normal direction, and the distance 
     towards the manifold.
@@ -61,17 +61,17 @@ def _landing_direction(point, grad, lambda_regul):
     GtX = torch.matmul(grad.transpose(-1, -2), point)
     distance = XtX - torch.eye(p, device=point.device)
 
-    rel_grad = .5*(torch.matmul(grad, XtX) - torch.matmul(point, GtX))  
+    plam_grad = grad - .5*torch.matmul(point, GtX + GtX.transpose(-1, -2))  
     norm_dir = lambda_regul * torch.matmul(point, distance)
     # Distance norm for _safe_step_size computation
     distance_norm = torch.norm(distance, dim=(-1, -2))
 
-    return (rel_grad, norm_dir, distance_norm)
+    return (plam_grad, norm_dir, distance_norm)
 
 
-class LandingStiefelSGD(OptimMixin, torch.optim.Optimizer):
+class PLAMStiefelSGD(OptimMixin, torch.optim.Optimizer):
     r"""
-    Landing algorithm on the Stiefel manifold with the same API as
+    PLAM field on the Stiefel manifold with the same API as
     :class:`torch.optim.SGD`.
 
     Parameters
@@ -111,8 +111,8 @@ class LandingStiefelSGD(OptimMixin, torch.optim.Optimizer):
         weight_decay=0,
         nesterov=False,
         stabilize=None,
-        lambda_regul=100.0,
-        safe_step=0.5,
+        lambda_regul=1.0,
+        safe_step=[],
         check_type=True,
     ):
         if lr < 0.0:
@@ -181,7 +181,7 @@ class LandingStiefelSGD(OptimMixin, torch.optim.Optimizer):
                             state["momentum_buffer"] = grad.clone()
 
                     grad.add_(point, alpha=weight_decay)
-                    rel_grad, normal_dir, distance_norm = _landing_direction(point, grad, lambda_regul)
+                    rel_grad, normal_dir, distance_norm = _plam_direction(point, grad, lambda_regul)
                     # Apply momentum to the relative gradient
                     if momentum > 0:
                         momentum_buffer = state["momentum_buffer"]
