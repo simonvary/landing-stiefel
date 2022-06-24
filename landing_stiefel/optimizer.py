@@ -245,6 +245,7 @@ class LandingStiefelSGD(OptimMixin, torch.optim.Optimizer):
                         else:
                             group["bs"][point_ind] += torch.norm(rel_grad + normal_dir)**2 / group["bs"][point_ind]
                         step_size = 1/group["bs"][point_ind]
+                        
                     if safe_step:
                         d = distance_norm
                         a = torch.norm(rel_grad, dim=(-1, -2))
