@@ -152,6 +152,7 @@ class LandingStiefelSGD(OptimMixin, torch.optim.Optimizer):
         super().__init__(params, defaults, stabilize=stabilize)
         
         # Create placeholder tensors for tracking prev states for BB stepsizes
+        # (todo: reformulate to be easier to read)
         for group in self.param_groups:
             if group["lr"] in ['BB1', 'BB2', 'ABB']:
                 group["params_prev"] = []
@@ -161,6 +162,10 @@ class LandingStiefelSGD(OptimMixin, torch.optim.Optimizer):
                     group["grads_prev"].append(point.detach().clone())
                     group["params_prev"][-1].requires_grad = False
                     group["grads_prev"][-1].requires_grad = False
+            if group["lr"] == 'WNGrad':
+                group["bs"] = []
+                for point in group['params']:
+                    group["bs"].append(0)
 
     def step(self, closure=None):
         loss = None
@@ -214,7 +219,7 @@ class LandingStiefelSGD(OptimMixin, torch.optim.Optimizer):
                     # If learning_rate is float do a fixed stepsize with safeguard
                     if isinstance(learning_rate, float):
                         step_size = learning_rate  
-                        
+
                     # BB strategies as in Bin's paper
                     elif learning_rate in ['BB1', 'BB2', 'ABB']:
                         if group["step"] == 1:
@@ -230,11 +235,16 @@ class LandingStiefelSGD(OptimMixin, torch.optim.Optimizer):
                                 a = Y.norm()**2
                                 b = torch.abs(S.view((1,-1)) @ Y.view((-1,1)))
                                 step_size = b/a
-
                         # Update tracking variables
                         group["params_prev"][point_ind].copy_(point)
                         group["grads_prev"][point_ind].copy_(rel_grad + normal_dir)
-                    
+                    elif learning_rate == 'WNGrad':
+                        b = group["bs"][point_ind]
+                        if group["step"] == 1:
+                            group["bs"][point_ind] = torch.norm(rel_grad + normal_dir)
+                        else:
+                            group["bs"][point_ind] += torch.norm(rel_grad + normal_dir)**2 / group["bs"][point_ind]
+                        step_size = 1/group["bs"][point_ind]
                     if safe_step:
                         d = distance_norm
                         a = torch.norm(rel_grad, dim=(-1, -2))
