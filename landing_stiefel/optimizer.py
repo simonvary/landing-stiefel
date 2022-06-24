@@ -1,5 +1,6 @@
 import torch
 import torch.optim.optimizer
+import torch.nn.functional as f
 
 import geoopt
 from geoopt.tensor import ManifoldParameter, ManifoldTensor
@@ -61,6 +62,8 @@ def _landing_direction(point, grad, lambda_regul):
     GtX = torch.matmul(grad.transpose(-1, -2), point)
     distance = XtX - torch.eye(p, device=point.device)
 
+    # Note, that if we didn't need to know the rel_grad and distance norm, 
+    # this could be further sped up by doing X@(GtX-lam*distance)
     rel_grad = .5*(torch.matmul(grad, XtX) - torch.matmul(point, GtX))  
     norm_dir = lambda_regul * torch.matmul(point, distance)
     # Distance norm for _safe_step_size computation
@@ -111,12 +114,13 @@ class LandingStiefelSGD(OptimMixin, torch.optim.Optimizer):
         weight_decay=0,
         nesterov=False,
         stabilize=None,
-        lambda_regul=100.0,
+        lambda_regul=1.0,
+        normalize_columns=False,
         safe_step=0.5,
         check_type=True,
     ):
-        if lr < 0.0:
-            raise ValueError("Invalid learning rate: {}".format(lr))
+        #if lr < 0.0:
+        #    raise ValueError("Invalid learning rate: {}".format(lr))
         if momentum < 0.0:
             raise ValueError("Invalid momentum value: {}".format(momentum))
         if weight_decay < 0.0:
@@ -134,6 +138,7 @@ class LandingStiefelSGD(OptimMixin, torch.optim.Optimizer):
             weight_decay=weight_decay,
             nesterov=nesterov,
             lambda_regul=lambda_regul,
+            normalize_columns=normalize_columns,
             safe_step=safe_step,
             check_type=check_type,
         )
@@ -142,9 +147,20 @@ class LandingStiefelSGD(OptimMixin, torch.optim.Optimizer):
                 param.proj_()
         if nesterov and (momentum <= 0 or dampening != 0):
             raise ValueError(
-                "Nesterov momentum requires a momentum and zero dampening"
+                "Nesterov momentum requires a positive momentum and zero dampening"
             )
         super().__init__(params, defaults, stabilize=stabilize)
+        
+        # Create placeholder tensors for tracking prev states for BB stepsizes
+        for group in self.param_groups:
+            if group["lr"] == 'BB1':
+                group["params_prev"] = []
+                group["grads_prev"] = []
+                for point in group['params']:
+                    group["params_prev"].append(point.detach().clone())
+                    group["grads_prev"].append(point.detach().clone())
+                    group["params_prev"][-1].requires_grad = False
+                    group["grads_prev"][-1].requires_grad = False
 
     def step(self, closure=None):
         loss = None
@@ -160,10 +176,12 @@ class LandingStiefelSGD(OptimMixin, torch.optim.Optimizer):
                 nesterov = group["nesterov"]
                 learning_rate = group["lr"]
                 lambda_regul = group["lambda_regul"]
+                normalize_columns = group["normalize_columns"]
                 safe_step = group["safe_step"]
                 check_type = group["check_type"]
                 group["step"] += 1
-                for point in group["params"]:
+                for point_ind in range(len(group["params"])):
+                    point = group["params"][point_ind]
                     if check_type:
                         _check_orthogonal(point)
                     grad = point.grad
@@ -192,6 +210,24 @@ class LandingStiefelSGD(OptimMixin, torch.optim.Optimizer):
                             rel_grad = rel_grad.add_(momentum_buffer, alpha=momentum)
                         else:
                             rel_grad = momentum_buffer
+                    
+                    # If learning_rate is float do a fixed stepsize with safeguard
+                    if isinstance(learning_rate, float):
+                        step_size = learning_rate  
+                    # BB strategy as in Bin's paper
+                    elif learning_rate == 'BB1':
+                        if group["step"] == 1:
+                            step_size = 0.01
+                        else:
+                            S = point - group["params_prev"][point_ind]
+                            Y = (rel_grad + normal_dir) - group["grads_prev"][point_ind]
+                            a = torch.abs(S.view((1,-1)) @ Y.view((-1,1)))
+                            b = S.norm()**2
+                            step_size = b/a # because it is inverse in Bin's paper
+                        # Update tracking variables
+                        group["params_prev"][point_ind].copy_(point)
+                        group["grads_prev"][point_ind].copy_(rel_grad + normal_dir)
+                    
                     if safe_step:
                         d = distance_norm
                         a = torch.norm(rel_grad, dim=(-1, -2))
@@ -200,10 +236,13 @@ class LandingStiefelSGD(OptimMixin, torch.optim.Optimizer):
                         step_size_shape = list(point.shape)
                         step_size_shape[-1] = 1
                         step_size_shape[-2] = 1
-                        step_size = torch.clip(max_step, max=learning_rate).view(*step_size_shape)
-                    else:
-                        step_size = learning_rate
+                        step_size = torch.clip(max_step, max=step_size).view(*step_size_shape)
+                        
+                    # Take the step
                     new_point = point - step_size * (rel_grad + normal_dir)
+
+                    if normalize_columns:
+                        f.normalize(new_point, p=2, dim=-2, out=new_point)
                     point.copy_(new_point)
 
                 if (
