@@ -153,7 +153,7 @@ class LandingStiefelSGD(OptimMixin, torch.optim.Optimizer):
         
         # Create placeholder tensors for tracking prev states for BB stepsizes
         for group in self.param_groups:
-            if group["lr"] == 'BB1':
+            if group["lr"] in ['BB1', 'BB2', 'ABB']:
                 group["params_prev"] = []
                 group["grads_prev"] = []
                 for point in group['params']:
@@ -214,16 +214,23 @@ class LandingStiefelSGD(OptimMixin, torch.optim.Optimizer):
                     # If learning_rate is float do a fixed stepsize with safeguard
                     if isinstance(learning_rate, float):
                         step_size = learning_rate  
-                    # BB strategy as in Bin's paper
-                    elif learning_rate == 'BB1':
+                        
+                    # BB strategies as in Bin's paper
+                    elif learning_rate in ['BB1', 'BB2', 'ABB']:
                         if group["step"] == 1:
                             step_size = 0.01
                         else:
                             S = point - group["params_prev"][point_ind]
                             Y = (rel_grad + normal_dir) - group["grads_prev"][point_ind]
-                            a = torch.abs(S.view((1,-1)) @ Y.view((-1,1)))
-                            b = S.norm()**2
-                            step_size = b/a # because it is inverse in Bin's paper
+                            if (learning_rate == 'BB1') or (learning_rate == 'ABB' and group["step"] % 2 == 1):
+                                a = torch.abs(S.view((1,-1)) @ Y.view((-1,1)))
+                                b = S.norm()**2
+                                step_size = b/a # because it is inverse stepsize in Bin's paper
+                            elif (learning_rate == 'BB2') or (learning_rate == 'ABB' and group["step"] % 2 == 0):
+                                a = Y.norm()**2
+                                b = torch.abs(S.view((1,-1)) @ Y.view((-1,1)))
+                                step_size = b/a
+
                         # Update tracking variables
                         group["params_prev"][point_ind].copy_(point)
                         group["grads_prev"][point_ind].copy_(rel_grad + normal_dir)
