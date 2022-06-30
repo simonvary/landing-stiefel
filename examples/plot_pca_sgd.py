@@ -15,10 +15,10 @@ torch.manual_seed(0)
 
 # generate random matrices
 
-m = 1000     # number of samples
+m = 10000     # number of samples
 n = 100         # dimension of samples
 p = 20        # number of principal components
-batch_size = 1000
+batch_size = 100
 noise_level = 1e-3
 A = torch.randn(m, p) @ torch.randn(p, n)
 A += torch.randn(m, n)
@@ -35,7 +35,7 @@ loss_star = loss_star.item()
 method_names = ["Landing", "Retraction"] # "Retraction",
 methods =  [LandingStiefelSGD, RiemannianSGD] # RiemannianSGD
 
-learning_rate = 1e-2 # 0.3
+learning_rate = 1e-3 # 0.3
 
 f, axes = plt.subplots(2, 1)
 for method_name, method, n_epochs in zip(method_names, methods, [500, 500]):

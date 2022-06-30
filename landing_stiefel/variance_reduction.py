@@ -1,5 +1,7 @@
 from random import random
 import numpy as np
+from scipy.linalg import expm
+
 
 def landing_algorithm(fun_and_grad, x0, random_idxs, n_batch,
                       step_size, lbda, store_every, use_vr=True):
@@ -34,18 +36,68 @@ def landing_algorithm(fun_and_grad, x0, random_idxs, n_batch,
         landing_direction = .5 * np.dot(direction, delta)
         landing_direction += np.dot(x, lbda * (delta - np.eye(p)) - .5 * U)
         x -= step_size * landing_direction
-    _, g = fun_and_grad(x, batch, full=True)
-    return x_list
+    return x
 
+
+def variance_reduction(grad, memory, id):
+    idx, weight = id
+    diff = grad - memory[idx]
+    direction = diff + memory[-1]
+    memory[-1] += diff * weight
+    memory[idx] = grad
+    return direction
+
+
+def optimizer(
+    function_oracle,
+    x,
+    max_iter,
+    sampler,
+    step_size,
+    memory,
+    lbda,
+    saga=True,
+    retraction='landing',
+    seed=0
+):
+    n, p = x.shape
+    # Set seed for randomness
+    np.random.seed(seed)
+
+    for i in range(max_iter):
+        # Get all gradient for the batch
+        slice, id = sampler.get_batch()
+        direction = function_oracle.grad(x, slice)
+
+        if saga:
+            direction = variance_reduction(
+                direction, memory, id
+            )
+        if retraction == 'landing':
+            delta = np.dot(x, x.T)
+            landing_direction = np.dot(lbda * (delta - np.eye(p))  + .5 * (direction - direction.T), x)
+            x -= step_size * landing_direction
+        else:
+            # A = np.dot(direction, x.T)
+            A = direction
+            A -= A.T
+            A *= step_size / 2
+            if retraction == 'exp':
+                x = np.dot(expm(- A), x)
+            elif retraction == 'cayley':
+                x = np.dot(np.linalg.inv(np.eye(p) + A / 2), np.eye(p) - A / 2).dot(x)
+    return x
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
-    n = 10
-    p = 5
+    n = 50
+    p = 25
     n_samples = 10000
     n_batch = 100   
     batch_size = n_samples // n_batch
     X = np.random.randn(n_samples, n)
+    u, _, v = np.linalg.svd(X, full_matrices=False)
+    sol = v[:p].T
     def fun_and_grad(x, batch, full=False):
         if full:
             data = X
@@ -69,6 +121,7 @@ if __name__ == '__main__':
     def proj(x):
         return np.linalg.qr(x)[0]
 
+    f_star = full_f(sol)
     n_iters = 10000
     random_idxs = np.random.randint(0, n_batch, n_iters)
     step = 1e-1
@@ -76,5 +129,6 @@ if __name__ == '__main__':
     plt.figure()
     for use_vr in [True, False]:
         x_list = landing_algorithm(fun_and_grad, x0, random_idxs, n_batch, step, 1., store_every=10, use_vr=use_vr)
-        plt.plot([full_f(proj(x)) for x in x_list])
+        plt.plot([full_f(proj(x)) - f_star for x in x_list])
+    plt.yscale('log')
     plt.show()
