@@ -39,15 +39,39 @@ for method_name in method_names:
     stiefel_distances[method_name] = checkpoint['stiefel_distances']
     time_list[method_name] = checkpoint['time_list']
 
-colors = {'landing' : 'blue', 
-            'regularization' : 'red', 
-            'geotorch' : 'green'}
+colormap = plt.cm.Set1
+colors = {}
+for i in range(len(method_names)):
+    colors[method_names[i]] = colormap.colors[i]
+
+fig, axs = plt.subplots(2, 1)
+fig.suptitle('CIFAR-10 Orthogonal VGG16')
+
+# Loss subplot
 for method_name in method_names:
     times_mins = np.array(time_list[method_name]) / 60
-    plt.semilogy(times_mins, train_loss_values[method_name], '-', label = method_name + ' loss', color=colors[method_name])
-    if stiefel_distances[method_name]:
-        plt.semilogy(times_mins, stiefel_distances[method_name], '--', label = method_name + ' distance', color=colors[method_name])
+    axs[0].plot(times_mins, train_loss_values[method_name], '-', label = method_name, color=colors[method_name])
+    axs[0].set_xlabel('time (minutes)')
+    axs[0].set_ylabel('Train loss (objective)')
+    axs[0].legend()
 
-plt.legend()
+# Test subplot
+# for method_name in method_names:
+#     times_mins = np.array(time_list[method_name]) / 60
+#     axs[1].plot(times_mins, test_accuracy_values[method_name], '-', label = method_name + ' loss', color=colors[method_name])
+#     axs[1].set_xlabel('time (minutes)')
+#     axs[1].set_ylabel('Test accuracy')
+#     axs[1].legend()
+
+# Distances subplot
+for method_name in method_names:
+    times_mins = np.array(time_list[method_name]) / 60
+    if stiefel_distances[method_name]:
+        axs[1].semilogy(times_mins, stiefel_distances[method_name], '--', label = method_name, color=colors[method_name])
+    axs[1].set_xlabel('time (minutes)')
+    axs[1].set_ylabel('Distance to the constraint')
+    axs[1].legend()
+
+fig.subplots_adjust(hspace=0.5)
 plt.savefig("plot_cifar10.pdf", dpi=150)
 plt.show()
