@@ -9,6 +9,8 @@ from torchvision import datasets, transforms
 
 import geoopt
 from geoopt.optim import RiemannianSGD, RiemannianLineSearch
+from stiefel_conv2d import EuclideanStiefelConv2d
+
 
 import geotorch
 
@@ -27,7 +29,7 @@ learning_rate = 1
 weight_decay = 5e-4
 lambda_regul = 1
 safe_step = None
-method_name = 'geotorch'
+method_name = 'geoopt'
 
 
 class OrthConv2d(nn.Conv2d):
@@ -136,17 +138,16 @@ def main():
             if isinstance(module, torch.nn.Conv2d):
                 geotorch.orthogonal(module, 'weight')
         optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, weight_decay = weight_decay)
-    elif method_name == 'geoopt': # not working
+    elif method_name == 'geoopt':
         for name, module in model.named_modules():
             if isinstance(module, torch.nn.Conv2d):
-                size_p = np.prod(module.weight.shape[-2:])
-                #module.weight = geoopt.ManifoldParameter(module.weight.view(-1, size_p), manifold=geoopt.Stiefel(canonical=False))
-        optimizer = RiemannianSGD(model.parameters(), lr=learning_rate, weight_decay = weight_decay)
+                module.weight = geoopt.ManifoldParameter(module.weight, manifold=EuclideanStiefelConv2d())
+        optimizer = RiemannianSGD(model.parameters(), lr=learning_rate*0.01, weight_decay = weight_decay)
     elif method_name == 'regularization':
         def stiefel_regularization(model):
             stiefel_regul = torch.tensor(0.,device=device)
             for name, module in model.named_modules():
-                if isinstance(module, torch.nn.Conv2d):
+                if isinstance(module, torch.nn.Conv2d): 
                     size_p = np.prod(module.weight.shape[-2:])
                     weight_mat = module.weight.view(-1,size_p)
                     stiefel_regul += lambda_regul * torch.norm(weight_mat.T @ weight_mat - torch.eye(size_p,device=device))**2

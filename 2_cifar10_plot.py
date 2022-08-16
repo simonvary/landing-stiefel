@@ -24,8 +24,8 @@ epochs      = 150
 device      = torch.device('cuda')
 
 
-method_names = ['landing', 'regularization', 'geotorch']
-
+method_names = ['landing', 'regularization', 'geotorch', 'geoopt_01']
+# 'geoopt', 'geoopt_05',
 train_loss_values = {}
 test_loss_values = {}
 test_accuracy_values = {}
@@ -44,7 +44,7 @@ colors = {}
 for i in range(len(method_names)):
     colors[method_names[i]] = colormap.colors[i]
 
-fig, axs = plt.subplots(2, 1)
+fig, axs = plt.subplots(3, 1, figsize=(8, 10))
 fig.suptitle('CIFAR-10 Orthogonal VGG16')
 
 # Loss subplot
@@ -53,24 +53,26 @@ for method_name in method_names:
     axs[0].plot(times_mins, train_loss_values[method_name], '-', label = method_name, color=colors[method_name])
     axs[0].set_xlabel('time (minutes)')
     axs[0].set_ylabel('Train loss (objective)')
+    axs[0].set_xlim(0, 50)
     axs[0].legend()
 
 # Test subplot
-# for method_name in method_names:
-#     times_mins = np.array(time_list[method_name]) / 60
-#     axs[1].plot(times_mins, test_accuracy_values[method_name], '-', label = method_name + ' loss', color=colors[method_name])
-#     axs[1].set_xlabel('time (minutes)')
-#     axs[1].set_ylabel('Test accuracy')
-#     axs[1].legend()
+for method_name in method_names:
+    times_mins = np.array(time_list[method_name]) / 60
+    axs[1].plot(times_mins, test_accuracy_values[method_name], '-', label = method_name, color=colors[method_name])
+    axs[1].set_xlabel('time (minutes)')
+    axs[1].set_ylabel('Test accuracy')
+    axs[1].set_xlim(0, 50)
+    axs[1].legend(loc="lower right")
 
 # Distances subplot
 for method_name in method_names:
     times_mins = np.array(time_list[method_name]) / 60
     if stiefel_distances[method_name]:
-        axs[1].semilogy(times_mins, stiefel_distances[method_name], '--', label = method_name, color=colors[method_name])
-    axs[1].set_xlabel('time (minutes)')
-    axs[1].set_ylabel('Distance to the constraint')
-    axs[1].legend()
+        axs[2].semilogy(times_mins, stiefel_distances[method_name], '--', label = method_name, color=colors[method_name])
+    axs[2].set_xlabel('time (minutes)')
+    axs[2].set_ylabel('Distance to the constraint')
+    axs[2].legend()
 
 fig.subplots_adjust(hspace=0.5)
 plt.savefig("plot_cifar10.pdf", dpi=150)
