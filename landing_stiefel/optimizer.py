@@ -8,6 +8,9 @@ import geoopt
 from geoopt.tensor import ManifoldParameter, ManifoldTensor
 from geoopt.optim.mixin import OptimMixin
 
+import pdb
+
+
 __all__ = ["LandingStiefelSGD"]
 
 
@@ -189,12 +192,7 @@ class LandingStiefelSGD(OptimMixin, torch.optim.Optimizer):
                 safe_step = group["safe_step"]
                 check_type = group["check_type"]
                 group["step"] += 1
-                if lambda_regul>0:
-                    group["stiefel_distance"] = 0
-                else:
-                    group["stiefel_distance"] = None
-                for point_ind in range(len(group["params"])):
-                    point = group["params"][point_ind]
+                for point_ind, point in enumerate(group["params"]):
                     if check_type:
                         _check_orthogonal(point)
                     grad = point.grad
@@ -223,21 +221,12 @@ class LandingStiefelSGD(OptimMixin, torch.optim.Optimizer):
                         else:
                             raise RuntimeError( "Cannot enforce orthogonality on scalar weights."
                         )
-                        group["stiefel_distance"] = np.sqrt(group["stiefel_distance"]**2 + distance_norm.item()**2)
-
+                        
                         if safe_step:
                             d = distance_norm
                             g = torch.linalg.norm(rel_grad + normal_dir)
                             max_step = _safe_step_size(d, g, lambda_regul, safe_step)
-                            #print(d)
-                            #print(g)
-                            #max_step = max_step.flatten()[0]
-                            #print(max_step)
-                            #step_size_shape = list(point.shape)
-                            #step_size_shape[-1] = 1
-                            #step_size_shape[-2] = 1
-                            learning_rate = torch.clip(max_step, max=learning_rate)#.view(*step_size_shape)
-                            #print(learning_rate)
+                            learning_rate = torch.clip(max_step, max=learning_rate)
                         # Take the step with orthogonalization
                         new_point = point - learning_rate * (rel_grad + normal_dir)
                         if normalize_columns:
@@ -251,11 +240,6 @@ class LandingStiefelSGD(OptimMixin, torch.optim.Optimizer):
                     point.copy_(new_point)
         return loss
     
-    def stiefel_distances(self):
-        stiefel_distances = []
-        for group in self.param_groups:
-            stiefel_distances.append(group["stiefel_distance"])
-        return stiefel_distances
 
     @torch.no_grad()
     def stabilize_group(self, group):
