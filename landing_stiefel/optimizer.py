@@ -8,7 +8,24 @@ import geoopt
 from geoopt.tensor import ManifoldParameter, ManifoldTensor
 from geoopt.optim.mixin import OptimMixin
 
-import pdb
+
+
+def reshape_conv2d_weight(x, split_ind = 3):
+    size_n = np.prod(x.shape[:-split_ind])
+    size_p = np.prod(x.shape[-split_ind:])
+    x_ = x.view(size_n, size_p)
+    if size_n >= size_p:
+        return(x_)
+    else:
+        return(x_.T)
+
+def reshape_conv2d_weight_back(x, shape, split_ind = 3):
+    size_n = np.prod(shape[:-split_ind])
+    size_p = np.prod(shape[-split_ind:])
+    if size_n >= size_p:
+        return (x.view(shape))
+    else:
+        return (x.T.view(shape))
 
 
 __all__ = ["LandingStiefelSGD"]
@@ -215,9 +232,11 @@ class LandingStiefelSGD(OptimMixin, torch.optim.Optimizer):
                         if len(point.shape) == 2:
                             rel_grad, normal_dir, distance_norm = _landing_direction(point, grad, lambda_regul)
                         elif len(point.shape) > 2:
-                            size_p = np.prod(point.shape[-2:])
-                            rel_grad, normal_dir, distance_norm = _landing_direction(point.view(-1, size_p), grad.view(-1, size_p), lambda_regul)
-                            rel_grad, normal_dir = rel_grad.view(point.shape), normal_dir.view(point.shape)
+                            point_ = reshape_conv2d_weight(point, split_ind = 3)
+                            grad_ = reshape_conv2d_weight(grad, split_ind = 3)
+                            rel_grad, normal_dir, distance_norm = _landing_direction(point_, grad_, lambda_regul)
+                            rel_grad = reshape_conv2d_weight_back(rel_grad, point.shape, split_ind = 3)
+                            normal_dir = reshape_conv2d_weight_back(normal_dir, point.shape, split_ind = 3)
                         else:
                             raise RuntimeError( "Cannot enforce orthogonality on scalar weights."
                         )
@@ -227,6 +246,7 @@ class LandingStiefelSGD(OptimMixin, torch.optim.Optimizer):
                             g = torch.linalg.norm(rel_grad + normal_dir)
                             max_step = _safe_step_size(d, g, lambda_regul, safe_step)
                             learning_rate = torch.clip(max_step, max=learning_rate)
+                        
                         # Take the step with orthogonalization
                         new_point = point - learning_rate * (rel_grad + normal_dir)
                         if normalize_columns:

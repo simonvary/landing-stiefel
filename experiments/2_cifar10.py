@@ -17,9 +17,6 @@ from landing_stiefel import LandingStiefelSGD
 from models import VGG16
 from utils import stiefel_project, stiefel_distance, EuclideanStiefelConv2d, get_conv2d
 
-import pdb
-
-
 torch.manual_seed(0)
 
 n_classes   = 10
@@ -27,13 +24,13 @@ batch_size  = 128
 epochs      = 150
 device      = torch.device('cuda')
 
-learning_rate = 1e-3
+learning_rate = 1e-1
 weight_decay = 5e-4
 lambda_regul = 1
-safe_step = 0.5
-init_project = True 
-method_name = 'landing'
-filename = '2_cifar10_'+method_name+'-safestep.pt'
+safe_step = None
+init_project = False
+method_name = 'regularization'
+filename = '2_cifar10_'+method_name+'_v2.pt'
 
 if __name__ == "__main__":
     print('==> Preparing data..')
@@ -67,8 +64,10 @@ if __name__ == "__main__":
     model.to(device)
 
     print('Method name: '+ method_name)
+    print('File name: '+ filename)
 
     conv2d_modules, ortho_params, other_params = get_conv2d(model,project=init_project)
+    print("Init. Stiefel distance: {:3.4e}".format(stiefel_distance(ortho_params,device = device).item()))
 
     if method_name == 'landing':
         optimizer = LandingStiefelSGD([
