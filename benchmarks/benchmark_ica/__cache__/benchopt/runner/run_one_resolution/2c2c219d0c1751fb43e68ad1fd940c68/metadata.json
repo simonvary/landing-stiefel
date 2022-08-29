@@ -1,1 +1,0 @@
-{"duration": 0.09250688552856445, "input_args": {"objective": "ICA under orthogonal constraint", "solver": "picard", "meta": "{'objective_name': 'ICA under orthogonal constraint', 'solver_name': 'picard', 'data_name': 'EEG[n_features=10,n_samples=20850]', 'idx_rep': 0}", "stop_val": "0"}}
