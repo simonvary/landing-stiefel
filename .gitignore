@@ -1,3 +1,4 @@
 *.pyc
 *.pt
 benchmarks/benchmark_ica/__cache__
+benchmarks/benchmark_ica/outputs
