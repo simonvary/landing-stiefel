@@ -1,0 +1,1 @@
+{"duration": 0.18877625465393066, "input_args": {"objective": "ICA under orthogonal constraint", "solver": "picard", "meta": "{'objective_name': 'ICA under orthogonal constraint', 'solver_name': 'picard', 'data_name': 'Simulated[n_features=30,n_samples=1000]', 'idx_rep': 4}", "stop_val": "19"}}
