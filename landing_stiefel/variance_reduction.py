@@ -3,6 +3,9 @@ import numpy as np
 from scipy.linalg import expm
 
 
+def proj(x):
+    return np.linalg.qr(x)[0]
+
 def landing_algorithm(fun_and_grad, x0, random_idxs, n_batch,
                       step_size, lbda, store_every, use_vr=True):
     n, p = x0.shape
@@ -58,7 +61,8 @@ def optimizer(
     lbda,
     saga=True,
     retraction='landing',
-    seed=0
+    seed=0,
+    gradient='relative'
 ):
     n, p = x.shape
     # Set seed for randomness
@@ -74,18 +78,27 @@ def optimizer(
                 direction, memory, id
             )
         if retraction == 'landing':
-            delta = np.dot(x, x.T)
-            landing_direction = np.dot(lbda * (delta - np.eye(p))  + .5 * (direction - direction.T), x)
+            if gradient == 'relative':
+                delta = np.dot(x, x.T)
+                landing_direction = np.dot(lbda * (delta - np.eye(p))  + .5 * (direction - direction.T), x)
+            else:
+                delta = np.dot(x.T, x)
+                landing_direction = .5 * np.dot(direction, delta)
+                landing_direction += np.dot(x, lbda * (delta - np.eye(p)) - .5 * np.dot(direction.T, x))
             x -= step_size * landing_direction
         else:
-            # A = np.dot(direction, x.T)
-            A = direction
-            A -= A.T
-            A *= step_size / 2
+            if gradient == 'relative':
+                A = direction
+                A -= A.T
+                A *= step_size / 2
+            else:
+                direction = 0.5 * (direction - np.dot(x, np.dot(direction.T, x)))
             if retraction == 'exp':
                 x = np.dot(expm(- A), x)
             elif retraction == 'cayley':
                 x = np.dot(np.linalg.inv(np.eye(p) + A / 2), np.eye(p) - A / 2).dot(x)
+            elif retraction == 'proj':
+                x = proj(x - step_size * direction)
     return x
 
 if __name__ == '__main__':

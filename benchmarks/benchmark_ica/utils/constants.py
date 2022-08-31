@@ -1,12 +1,12 @@
 import numpy as np
 
-EVAL_FREQ = 2 ** 2
-PATIENCE = 100000
+EVAL_FREQ = 2 ** 8
+PATIENCE = 1000000
 BATCH_SIZES = [100]
 
 # STEP_SIZES = [0.01, 0.1, 1]
 # RETRACTIONS = ['landing', 'exp', 'cayley']
-STEP_SIZES = [0.05, 0.1, 0.5, 1]
+STEP_SIZES = [.05, 0.1, .5]
 RETRACTIONS = ['landing', 'exp']
 # Get a random seed
 MAX_SEED = 2 ** 32 - 1
