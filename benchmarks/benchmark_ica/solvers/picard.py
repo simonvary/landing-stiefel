@@ -19,7 +19,7 @@ class Solver(BaseSolver):
             warnings.simplefilter("ignore")
             K, W, _ = picard(self.X.T, max_iter=n_iter + 1, ortho=True,
                              extended=False, tol=0, whiten=False)
-        self.unmixing = W
+        self.unmixing = W 
 
     def get_result(self):
         return self.unmixing

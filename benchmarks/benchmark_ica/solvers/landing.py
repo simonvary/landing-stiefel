@@ -2,17 +2,19 @@ from benchopt import BaseSolver, safe_import_context
 from benchopt.stopping_criterion import SufficientProgressCriterion
 
 
+import pdb
+
 with safe_import_context() as import_ctx:
     import numpy as np
     from scipy.linalg import expm
+    import sys
+    sys.path.append("../../")
     from landing_stiefel.variance_reduction import optimizer
     IcaOracle = import_ctx.import_from(
         'helper_ica', 'IcaOracle'
     )
     constants = import_ctx.import_from("constants")
-
     MinibatchSampler = import_ctx.import_from("minibatch_sampler", "MinibatchSampler")
-
 
 
 def init_memory(
@@ -32,14 +34,11 @@ def init_memory(
 
 
 
-
-
 class Solver(BaseSolver):
     name = 'Riemannian SGD' 
 
     stopping_criterion = SufficientProgressCriterion(patience=constants.PATIENCE,
                                                      strategy="callback")
-
 
     parameters = {
         "step_size": constants.STEP_SIZES,
