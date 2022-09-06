@@ -105,3 +105,20 @@ def get_conv2d(model, project=False):
             other_parameter_list.append(param)
 
     return (module_list, parameter_list, other_parameter_list)
+
+
+
+
+def generate_PCA_problem(m, n, p, sdev = 0):
+    '''
+    Generates A = L + N where L = U @ S @ V^T is a rank-r and 
+    N is Gaussian noise
+    '''
+    U, _ = torch.linalg.qr(torch.randn(m,p), mode='reduced')
+    V, _ = torch.linalg.qr(torch.randn(n,p), mode='reduced')
+    S = torch.linspace(1, 0.5, steps=p)
+    L = U @ S.diag() @ V.transpose(-1, -2)
+    L = (L - L.mean(dim=0)) / L.std(dim=0) # zero mean, st. dev. one
+    A = L + sdev * torch.randn(m,n)
+    A = A / torch.linalg.norm(A)
+    return A

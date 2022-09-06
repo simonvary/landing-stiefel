@@ -141,8 +141,8 @@ class LandingStiefelSGD(OptimMixin, torch.optim.Optimizer):
         safe_step=0.5,
         check_type=False,
     ):
-        #if lr < 0.0:
-        #    raise ValueError("Invalid learning rate: {}".format(lr))
+        if lr < 0.0:
+            raise ValueError("Invalid learning rate: {}".format(lr))
         if momentum < 0.0:
             raise ValueError("Invalid momentum value: {}".format(momentum))
         if weight_decay < 0.0:
@@ -171,27 +171,6 @@ class LandingStiefelSGD(OptimMixin, torch.optim.Optimizer):
             )
         
         super().__init__(params, defaults, stabilize=stabilize)
-        # for group in self.param_groups:
-        #     if lambda_regul>0:
-        #         for param in group["params"]:
-        #             param = geoopt.ManifoldParameter(param.clone(),manifold=geoopt.Stiefel(canonical=False))
-        #             with torch.no_grad():
-        #                 param.proj_()
-        # Create placeholder tensors for tracking prev states for BB stepsizes
-        # (todo: reformulate to be easier to read)
-        # for group in self.param_groups:
-        #     if group["lr"] in ['BB1', 'BB2', 'ABB']:
-        #         group["params_prev"] = []
-        #         group["grads_prev"] = []
-        #         for point in group['params']:
-        #             group["params_prev"].append(point.detach().clone())
-        #             group["grads_prev"].append(point.detach().clone())
-        #             group["params_prev"][-1].requires_grad = False
-        #             group["grads_prev"][-1].requires_grad = False
-        #     if group["lr"] == 'WNGrad':
-        #         group["bs"] = []
-        #         for point in group['params']:
-        #             group["bs"].append(0)
 
     def step(self, closure=None):
         loss = None
@@ -276,54 +255,3 @@ class LandingStiefelSGD(OptimMixin, torch.optim.Optimizer):
                 if "momentum_buffer" in param_state:
                     buf = param_state["momentum_buffer"]
                     buf.copy_(manifold.proju(p, buf))
-
-                    # Apply momentum to the relative gradient
-                    #if momentum > 0:
-                    #    momentum_buffer = state["momentum_buffer"]
-                    #    momentum_buffer.mul_(momentum).add_(
-                    #        rel_grad, alpha=1 - dampening
-                    #    )
-                    #    if nesterov:
-                    #        rel_grad = rel_grad.add_(momentum_buffer, alpha=momentum)
-                    #    else:
-                    #        rel_grad = momentum_buffer
-                    
-                    # If learning_rate is float do a fixed stepsize with safeguard
-                    #if isinstance(learning_rate, float):
-                    #    step_size = learning_rate  
-
-                    # BB strategies as in Bin's paper
-                    # elif learning_rate in ['BB1', 'BB2', 'ABB']:
-                    #     if group["step"] == 1:
-                    #         step_size = 0.01
-                    #     else:
-                    #         S = point - group["params_prev"][point_ind]
-                    #         Y = (rel_grad + normal_dir) - group["grads_prev"][point_ind]
-                    #         if (learning_rate == 'BB1') or (learning_rate == 'ABB' and group["step"] % 2 == 1):
-                    #             a = torch.abs(S.view((1,-1)) @ Y.view((-1,1)))
-                    #             b = S.norm()**2
-                    #             step_size = b/a # because it is inverse stepsize in Bin's paper
-                    #         elif (learning_rate == 'BB2') or (learning_rate == 'ABB' and group["step"] % 2 == 0):
-                    #             a = Y.norm()**2
-                    #             b = torch.abs(S.view((1,-1)) @ Y.view((-1,1)))
-                    #             step_size = b/a
-                    #     # Update tracking variables
-                    #     group["params_prev"][point_ind].copy_(point)
-                    #     group["grads_prev"][point_ind].copy_(rel_grad + normal_dir)
-                    # elif learning_rate == 'WNGrad':
-                    #     b = group["bs"][point_ind]
-                    #     if group["step"] == 1:
-                    #         group["bs"][point_ind] = torch.norm(rel_grad + normal_dir)
-                    #     else:
-                    #         group["bs"][point_ind] += torch.norm(rel_grad + normal_dir)**2 / group["bs"][point_ind]
-                    #     step_size = 1/group["bs"][point_ind]
-"""                    if safe_step:
-                        d = distance_norm
-                        g = torch.norm(rel_grad + normal_dir, dim=(-1, -2))
-                        max_step = _safe_step_size(d, g, lambda_regul, safe_step)
-                        #print(max_step)
-                        # One step per orthogonal matrix
-                        step_size_shape = list(point.shape)
-                        step_size_shape[-1] = 1
-                        step_size_shape[-2] = 1
-                        step_size = torch.clip(max_step, max=step_size).view(*step_size_shape) """

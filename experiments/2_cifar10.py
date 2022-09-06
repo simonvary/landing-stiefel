@@ -81,7 +81,7 @@ if __name__ == "__main__":
         for module in conv2d_modules:
             module.weight = geoopt.ManifoldParameter(module.weight, manifold=EuclideanStiefelConv2d())
         optimizer = geoopt.optim.RiemannianSGD(model.parameters(), lr=learning_rate, weight_decay = weight_decay)
-    if method_name == 'regularization':
+    elif method_name == 'regularization':
         optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, weight_decay = weight_decay)
 
     scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[50,100], gamma=0.1)
