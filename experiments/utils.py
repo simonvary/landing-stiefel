@@ -120,5 +120,4 @@ def generate_PCA_problem(m, n, p, sdev = 0):
     L = U @ S.diag() @ V.transpose(-1, -2)
     L = (L - L.mean(dim=0)) / L.std(dim=0) # zero mean, st. dev. one
     A = L + sdev * torch.randn(m,n)
-    A = A / torch.linalg.norm(A)
     return A

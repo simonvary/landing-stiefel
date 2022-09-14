@@ -29,6 +29,7 @@ def run_pca_experiment(problem_parameters, method_name, method_parameters):
     n_samples = problem_parameters['n_samples']
     n_features = problem_parameters['n_features']
     p_subspace = problem_parameters['p_subspace']
+    noise_sdev = problem_parameters['noise_sdev']
 
     batch_size = method_parameters['batch_size']
     n_epochs = method_parameters['n_epochs']
@@ -40,9 +41,9 @@ def run_pca_experiment(problem_parameters, method_name, method_parameters):
     device = method_parameters['device']
 
     # Generate the problem
-    A = generate_PCA_problem(n_samples, n_features, p_subspace, sdev=0)        
+    A = generate_PCA_problem(n_samples, n_features, p_subspace, sdev=noise_sdev)        
     A = A.to(device)
-    objective = lambda x : -.5 * (torch.linalg.norm(A @ x )**2).item()
+    objective = lambda x : -.5 * (torch.linalg.norm(A @ x )**2).item() / n_samples
     # Compute the exact solution using SVD
     _, _, vh = torch.linalg.svd(A, full_matrices = False)
     x_star = vh[:p_subspace,:].T
@@ -65,7 +66,8 @@ def run_pca_experiment(problem_parameters, method_name, method_parameters):
         optimizer = geoopt.optim.RiemannianSGD((x,), lr=learning_rate)
     elif method_name == 'regularization':
         optimizer = torch.optim.SGD((x,), lr=learning_rate)
-    
+    else:
+        raise ValueError('Unrecognized method_name.')
     #scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[round(n_epochs/2),round(n_epochs*3/4)], gamma=0.1)
 
     # Train
@@ -81,7 +83,7 @@ def run_pca_experiment(problem_parameters, method_name, method_parameters):
 
             ind_batch = permutation[i:i+batch_size]
             A_batch = A[ind_batch,:]
-            loss = -.5 * torch.linalg.norm(A_batch @ x )**2 
+            loss = -.5 * torch.linalg.norm(A_batch @ x )**2 / A_batch.shape[0]
             if method_name == 'regularization':
                 loss += .5*lambda_regul * stiefel_distance((x,), device=device) 
             loss.backward()
@@ -106,21 +108,35 @@ if __name__ == "__main__":
     problem_parameters = {
         'n_samples' : 10000,
         'n_features': 2000,
-        'p_subspace': 800
+        'p_subspace': 1000,
+        'noise_sdev': 2*1e-2
     }
 
     method_parameters = {
+        'method_name': 'landing',
         'batch_size': 128,
         'n_epochs': 100,
-        'learning_rate': 1e-3,
-        'lambda_regul': 1.0, 
-        'safe_step': None, 
-        'init_project': False,
+        'learning_rate': 1e-2,
+        'lambda_regul': 1, 
+        'safe_step': 0.5, 
+        'init_project': True,
         'x0': None,
         'device': torch.device('cuda')
     }
 
     torch.manual_seed(0)
-
-    method_name = 'landing'
+    method_name = method_parameters['method_name']
     out = run_pca_experiment(problem_parameters, method_name, method_parameters)
+    
+    train_loss, stiefel_distances, time_list = out.values()
+    fig, axs = plt.subplots(1, 2, figsize=(10, 3))
+
+    axs[0].semilogy(time_list, train_loss)
+    axs[0].set_xlabel('time (sec.)')
+    axs[0].set_ylabel('Train loss (objective)')
+
+    axs[1].semilogy(time_list, stiefel_distances)
+    axs[1].set_xlabel('time (sec.)')
+    axs[1].set_ylabel('Stiefel distance (objective)')
+
+    plt.savefig('plot.pdf')
