@@ -35,7 +35,22 @@ n_runs = 5
 methods_labels = ['landing', 'retraction (QR)', 'regularization lam = 1', 'regularization lam = 1e3']
 
 batch_size = 128
-n_epochs = 10
+n_epochs = 50
+
+problems = {
+    'test1': {
+        'n_samples' : 10000,
+        'n_features': 2000,
+        'p_subspace': 1000,
+        'noise_sdev': 1e-1
+    }, 
+    'test2': {
+        'n_samples' : 50000,
+        'n_features': 5000,
+        'p_subspace': 2000,
+        'noise_sdev': 1e-1
+    }
+}
 
 methods = {
     'landing1': {
@@ -81,21 +96,6 @@ methods = {
         'init_project': True,
         'x0': None,
         'device': torch.device('cuda')
-    }
-}
-
-problems = {
-    'test1': {
-        'n_samples' : 1000,
-        'n_features': 200,
-        'p_subspace': 100,
-        'noise_sdev': 1e-1
-    }, 
-    'test2': {
-        'n_samples' : 1000,
-        'n_features': 200,
-        'p_subspace': 100,
-        'noise_sdev': 2*1e-2
     }
 }
 
