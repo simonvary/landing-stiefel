@@ -35,20 +35,20 @@ n_runs = 5
 methods_labels = ['landing', 'retraction (QR)', 'regularization lam = 1', 'regularization lam = 1e3']
 
 batch_size = 128
-n_epochs = 50
+n_epochs = 200
 
 problems = {
     'test1': {
         'n_samples' : 10000,
         'n_features': 2000,
         'p_subspace': 1000,
-        'noise_sdev': 1e-1
+        'noise_sdev': 1e-2
     }, 
     'test2': {
-        'n_samples' : 50000,
-        'n_features': 5000,
+        'n_samples' : 10000,
+        'n_features': 4000,
         'p_subspace': 2000,
-        'noise_sdev': 1e-1
+        'noise_sdev': 1e-2
     }
 }
 
@@ -76,12 +76,12 @@ methods = {
         'device': torch.device('cuda')
     },
     'regularization1': {
-        'method_name': 'retraction',
+        'method_name': 'regularization',
         'batch_size': batch_size,
         'n_epochs': n_epochs,
-        'learning_rate': 1e-2,
+        'learning_rate': 1e-3,
         'lambda_regul': 1, 
-        'safe_step': 0.5, 
+        'safe_step': None, 
         'init_project': True,
         'x0': None,
         'device': torch.device('cuda')
@@ -90,9 +90,9 @@ methods = {
         'method_name': 'regularization',
         'batch_size': batch_size,
         'n_epochs': n_epochs,
-        'learning_rate': 1e-3,
-        'lambda_regul': 1e2, 
-        'safe_step': 0.5, 
+        'learning_rate': 1e-4,
+        'lambda_regul': 1e3, 
+        'safe_step': None, 
         'init_project': True,
         'x0': None,
         'device': torch.device('cuda')
@@ -113,6 +113,7 @@ for problem_id in problems:
         print("\tSolver: "+ method_id)
         out[problem_id][method_id] = {}
         for run_id in range(n_runs):
+            print("\t\tRun: {:d}/{:d}".format(run_id+1,n_runs))
             out[problem_id][method_id][run_id] = run_pca_experiment(problem_params, method_name, method_params)
         
         # Setup numpy array of all the runs
