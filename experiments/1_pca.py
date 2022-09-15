@@ -28,14 +28,14 @@ from pca_experiment import run_pca_experiment
 
 
 
-filename = '1_pca.pt'
+filename = '1_pca2.pt'
 
-n_runs = 5
+n_runs = 2
 
 methods_labels = ['landing', 'retraction (QR)', 'regularization lam = 1', 'regularization lam = 1e3']
 
 batch_size = 128
-n_epochs = 200
+n_epochs = 30
 
 problems = {
     'test1': {
@@ -45,10 +45,10 @@ problems = {
         'noise_sdev': 1e-2
     }, 
     'test2': {
-        'n_samples' : 10000,
-        'n_features': 4000,
+        'n_samples' : 25000,
+        'n_features': 5000,
         'p_subspace': 2000,
-        'noise_sdev': 1e-2
+        'noise_sdev': 1e-1
     }
 }
 
@@ -59,7 +59,7 @@ methods = {
         'n_epochs': n_epochs,
         'learning_rate': 1e-2,
         'lambda_regul': 1, 
-        'safe_step': 0.5, 
+        'safe_step': 0.9, 
         'init_project': True,
         'x0': None,
         'device': torch.device('cuda')
@@ -99,6 +99,7 @@ methods = {
     }
 }
 
+print('Starting for file ' + filename)
 
 out = {}
 

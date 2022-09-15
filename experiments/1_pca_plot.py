@@ -15,7 +15,7 @@ import torch
 
 
 
-filename = '1_pca.pt'
+filename = '1_pca2.pt'
 out_file = torch.load(filename)
 
 out = out_file['out']
@@ -56,7 +56,9 @@ for problem_id in problems:
     axs[1].set_xlabel('time (minutes)')
     axs[1].set_ylabel('Stiefel distance (constraint)')
     axs[1].legend()
+    #axs[1].set_xlim((0,1))
+    #axs[0].set_xlim((0,1))
+    fig.subplots_adjust(hspace=0.5)
+    plt.savefig(filename+"_"+problem_id+".pdf", dpi=150)
+    plt.show()
 
-#fig.subplots_adjust(hspace=0.5)
-#plt.savefig("plot_cifar10.pdf", dpi=150)
-plt.show()
