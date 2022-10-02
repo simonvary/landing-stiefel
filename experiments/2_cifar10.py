@@ -1,4 +1,4 @@
-import sys
+import sys, os, random
 from time import time
 sys.path.append("../")
 
@@ -17,145 +17,163 @@ from landing_stiefel import LandingStiefelSGD
 from models import VGG16
 from utils import stiefel_project, stiefel_distance, EuclideanStiefelConv2d, get_conv2d
 
-torch.manual_seed(0)
+from cifar10_experiment import run_cifar10_experiment
+
+random_seed = 123
+torch.manual_seed(random_seed)
+random.seed(random_seed)
+np.random.seed(random_seed)
 
 n_classes   = 10
 batch_size  = 128
-epochs      = 150
+n_epochs    = 150
 device      = torch.device('cuda')
+n_runs = 5
 
-learning_rate = 1e-1
-weight_decay = 5e-4
-lambda_regul = 1
-safe_step = None
-init_project = False
-method_name = 'regularization'
-filename = '2_cifar10_'+method_name+'_v2.pt'
 
-if __name__ == "__main__":
-    print('==> Preparing data..')
-    transform_train = transforms.Compose([
-        transforms.RandomCrop(32, padding=4),
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
-        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-    ])
+model_name = "VGG16"
+model = VGG16
+filename = 'outputs/2_cifar10_VGG16.pt'
+foldername = 'outputs/2_cifar10_VGG16/'
 
-    transform_test = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-    ])
+if not os.path.exists(foldername):
+    os.makedirs(foldername)
 
-    train_dataset = datasets.CIFAR10(
-        root='../data', train=True, download=False, transform=transform_train)
-    train_loader = torch.utils.data.DataLoader(
-        train_dataset, batch_size=batch_size, shuffle=True, num_workers=2)
 
-    test_dataset = datasets.CIFAR10(
-        root='../data', train=False, download=False, transform=transform_test)
-    test_loader = torch.utils.data.DataLoader(
-        test_dataset, batch_size=batch_size, shuffle=False, num_workers=2)
+def scheduler_function(optimizer):
+    return(torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[50,100], gamma=0.1))
 
-    classes = ('plane', 'car', 'bird', 'cat', 'deer',
-            'dog', 'frog', 'horse', 'ship', 'truck')
+transform_train = transforms.Compose([
+    transforms.RandomCrop(32, padding=4),
+    transforms.RandomHorizontalFlip(),
+    transforms.ToTensor(),
+    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+])
 
-    # Model and optimizers
-    model = VGG16()
-    model.to(device)
+transform_test = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+])
 
-    print('Method name: '+ method_name)
-    print('File name: '+ filename)
+# Prepare the problem
+problem = {}
+problem['train_dataset'] = datasets.CIFAR10(
+    root='../data', train=True, download=False, transform=transform_train)
+problem['train_loader'] = torch.utils.data.DataLoader(
+    problem['train_dataset'] , batch_size=batch_size, shuffle=True, num_workers=2)
 
-    conv2d_modules, ortho_params, other_params = get_conv2d(model,project=init_project)
-    print("Init. Stiefel distance: {:3.4e}".format(stiefel_distance(ortho_params,device = device).item()))
+problem['test_dataset'] = datasets.CIFAR10(
+    root='../data', train=False, download=False, transform=transform_test)
+problem['test_loader'] = torch.utils.data.DataLoader(
+    problem['test_dataset'], batch_size=batch_size, shuffle=False, num_workers=2)
 
-    if method_name == 'landing':
-        optimizer = LandingStiefelSGD([
-                {'params': ortho_params, 'lambda_regul': lambda_regul, 'safe_step' : safe_step},
-                {'params': other_params}], lr=learning_rate, weight_decay = weight_decay)
-    elif method_name == 'geotorch':
-        for module in conv2d_modules:
-            geotorch.orthogonal(module, 'weight')
-        optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, weight_decay = weight_decay)
-    elif method_name == 'geoopt':
-        for module in conv2d_modules:
-            module.weight = geoopt.ManifoldParameter(module.weight, manifold=EuclideanStiefelConv2d())
-        optimizer = geoopt.optim.RiemannianSGD(model.parameters(), lr=learning_rate, weight_decay = weight_decay)
-    elif method_name == 'regularization':
-        optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, weight_decay = weight_decay)
+# Prepare methods
+methods_labels = ['landing', 'retraction (QR)', 'regularization lam = 1', 'regularization lam = 1e3', 'trivialization']
+methods = {
+    # 'landing1': {
+    #     'method_name': 'landing',
+    #     'model': model,
+    #     'batch_size': batch_size,
+    #     'n_epochs': n_epochs,
+    #     'lambda_regul': 1,
+    #     'safe_step': 0.5,
+    #     'learning_rate': 1e-1,
+    #     'weight_decay': 5e-4,
+    #     'init_project': True,
+    #     'scheduler' : scheduler_function,
+    #     'x0': None,
+    #     'device': 'cuda'
+    # },
+    # 'retraction1': {
+    #     'method_name': 'retraction',
+    #     'model': model,
+    #     'batch_size': batch_size,
+    #     'n_epochs': n_epochs,
+    #     'lambda_regul': 1,
+    #     'safe_step': 0.5,
+    #     'learning_rate': 1e-1,
+    #     'weight_decay': 5e-4,
+    #     'init_project': True,
+    #     'scheduler' : scheduler_function,
+    #     'x0': None,
+    #     'device': 'cuda'
+    # },
+    # 'regularization1': {
+    #     'method_name': 'regularization',
+    #     'model': model,
+    #     'batch_size': batch_size,
+    #     'n_epochs': n_epochs,
+    #     'lambda_regul': 1,
+    #     'safe_step': None,
+    #     'learning_rate': 1e-1,
+    #     'weight_decay': 5e-4,
+    #     'init_project': False,
+    #     'scheduler' : scheduler_function,
+    #     'x0': None,
+    #     'device': 'cuda'
+    # },
+    # 'regularization2': {
+    #     'method_name': 'regularization',
+    #     'model': model,
+    #     'batch_size': batch_size,
+    #     'n_epochs': n_epochs,
+    #     'lambda_regul': 1e3,
+    #     'safe_step': None,
+    #     'learning_rate': 1e-4,
+    #     'weight_decay': 5e-4,
+    #     'init_project': False,
+    #     'scheduler' : scheduler_function,
+    #     'x0': None,
+    #     'device': 'cuda'
+    # },
+    'trivialization1': {
+        'method_name': 'trivialization',
+        'model': model,
+        'batch_size': batch_size,
+        'n_epochs': n_epochs,
+        'lambda_regul': 1,
+        'safe_step': None,
+        'learning_rate': 1e-1,
+        'weight_decay': 5e-4,
+        'init_project': False,
+        'scheduler' : scheduler_function,
+        'x0': None,
+        'device': 'cuda'
+    }
+}
 
-    scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[50,100], gamma=0.1)
+out = {}
+print('Starting CIFAR10 experiment with '+model_name)
 
-    # Train
-    train_loss_values = []
-    test_loss_values = []
-    test_accuracy_values = []
-    time_list = []
-    stiefel_distances = []
-    best_test_acc = 0.
-    t0 = time()
-    for epoch in range(epochs):
-        time_start = time()
-        model.train()
-        train_loss = 0.0
-        for batch_idx, (batch_x, batch_y) in enumerate(train_loader):
-            batch_x, batch_y = batch_x.to(device), batch_y.to(device)
-            logits = model(batch_x)
-            loss = model.loss(logits, batch_y)
-            train_loss =+ loss.item() * batch_x.size(0)
-            if method_name == 'regularization':
-                loss += lambda_regul * stiefel_distance(ortho_params, device=device, requires_grad=False)
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-        
-        if epoch == 0:
-            time_list.append(time() - time_start)
-        else:
-            time_list.append(time_list[-1] + (time() - time_start))
-        
-        train_loss_values.append(train_loss / len(train_loader))
-        stiefel_distances.append(stiefel_distance(ortho_params, device).item())
+for method_id, method_label in zip(methods, methods_labels):
+    method_params = methods[method_id]
+    method_name = methods[method_id]['method_name']
+    print("\tSolver: "+ method_id)
+    out[method_id] = {}
+    for run_id in range(n_runs):
+        print("\t\tRun: {:d}/{:d}".format(run_id+1,n_runs))
+        out[method_id][run_id] = run_cifar10_experiment(problem, method_name, methods[method_id],run_file_name=foldername+method_id+'_run'+str(run_id)+'.pt')
 
-        print("Epoch: {:d} Train set: Average loss: {:.4f} Distance: {:3.4e}".format(epoch, train_loss_values[-1], stiefel_distances[-1]))
+    # Setup numpy array of all the runs via reference
+    out_tmp = out[method_id]
+    out_tmp['arr_train_loss'] = np.array(out_tmp[0]['train_loss'])
+    out_tmp['arr_stiefel_distances'] = np.array(out_tmp[0]['stiefel_distances'])
+    out_tmp['arr_time_list'] = np.array(out_tmp[0]['time_list'])
+    for run_id in range(1, n_runs):
+        out_tmp['arr_train_loss'] = np.vstack((out_tmp['arr_train_loss'], out_tmp[run_id]['train_loss'] ))
+        out_tmp['arr_stiefel_distances'] = np.vstack((out_tmp['arr_stiefel_distances'], out_tmp[run_id]['stiefel_distances'] ))
+        out_tmp['arr_time_list'] = np.vstack((out_tmp['arr_time_list'], out_tmp[run_id]['time_list']))
 
-        # Test
-        model.eval()
-        with torch.no_grad():
-            test_loss = 0.
-            correct = 0.
-            for batch_x, batch_y in test_loader:
-                batch_x, batch_y = batch_x.to(device), batch_y.to(device)
-                logits = model(batch_x)
-                loss = model.loss(logits, batch_y)
-                test_loss += loss.item() * batch_x.size(0)
-                correct += model.correct(logits, batch_y).item()
-
-        test_loss_values.append(test_loss / len(test_dataset))
-        test_accuracy_values.append(100 * correct / len(test_dataset))
-        best_test_acc = max(test_accuracy_values[-1], best_test_acc)
-        print("Test set: Average loss: {:.4f}, Accuracy: {:.2f}%, Best Accuracy: {:.2f}%".format(test_loss_values[-1], test_accuracy_values[-1], best_test_acc))
-
-        if epoch % 10 == 0:
-            torch.save({
-                'epoch': epoch,
-                'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': optimizer.state_dict(),
-                'train_loss_values': train_loss_values,
-                'test_loss_values': test_loss_values,
-                'test_accuracy_values': test_accuracy_values,
-                'time_list': time_list,
-                'stiefel_distances': stiefel_distances,
-                }, filename)
-        scheduler.step()
-    
     torch.save({
-            'epoch': epoch,
-            'model_state_dict': model.state_dict(),
-            'optimizer_state_dict': optimizer.state_dict(),
-            'train_loss_values': train_loss_values,
-            'test_loss_values': test_loss_values,
-            'test_accuracy_values': test_accuracy_values,
-            'time_list': time_list,
-            'stiefel_distances': stiefel_distances,
-            }, filename)
+        'out': out[method_id],
+        'n_runs': n_runs,
+        'method_label': method_label,
+        'method': methods[method_id],
+        'problem': problem}, foldername+method_id+'.pt')
+
+    torch.save({
+        'out': out,
+        'n_runs': n_runs,
+        'methods_labels': methods_labels,
+        'methods': methods,
+        'problem': problem}, filename)

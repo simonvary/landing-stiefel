@@ -6,8 +6,9 @@ import numpy as np
 import torch
 import torch.nn as nn
 import geoopt
+import geotorch
 
-__all__ = ["EuclideanStiefelConv2d", "stiefel_project", "stiefel_distance", "get_conv2d", "reshape_conv2d_weight", "reshape_conv2d_weight_back"]
+__all__ = ["EuclideanStiefelConv2d", "stiefel_project", "stiefel_distance", "get_conv2d",  "get_conv2d_weight_params", "reshape_conv2d_weight", "reshape_conv2d_weight_back", "orthogonalConv2d", "GeotorchStiefelConv2d"]
 
 
 def reshape_conv2d_weight(x, split_ind = 3):
@@ -106,7 +107,59 @@ def get_conv2d(model, project=False):
 
     return (module_list, parameter_list, other_parameter_list)
 
+def get_conv2d_weight_params(module_list):
+    weight_list = []
+    bias_list = []
+    for module in module_list:
+        weight_list.append(module.weight)
+        bias_list.append(module.bias)
+    return (weight_list, bias_list)
 
+def size_flattened(size, dim):
+    size = list(size)
+    size_dim = size[dim]
+    size[dim] = 1
+    return (size_dim, np.prod(size))
+
+class GeotorchStiefelConv2d(geotorch.Stiefel):
+    def __init__(self, size, triv="expm"):
+        super().__init__(size_flattened(size, 0), triv)
+        self.size = list(size)
+        self.transposed = self.size[0] < np.prod(self.size[1:])
+
+    def _unfold(self, X):
+        X = X.flatten(1)
+        return X
+
+    def _fold(self, X):
+        return X.view(self.size)
+    
+    def forward(self, X):
+        X = self._unfold(X)
+        X = super().forward(X)
+        X = self._fold(X)
+        return X
+
+    def right_inverse(self, X, check_in_manifold=True):
+        if check_in_manifold and not self.in_manifold(X):
+            raise geotorch.exceptions.InManifoldError(X, self)  
+        X = self._unfold(X)
+        X = super().right_inverse(X,check_in_manifold=False)
+        return self._fold(X)
+    
+    def in_manifold(self, X, eps=1e-4):
+        X = self._unfold(X)
+        if X.size(-1) > X.size(-2):
+            X = X.transpose(-2, -1)
+        return geotorch.so._has_orthonormal_columns(X, eps)
+
+    def sample(self, distribution="uniform", init_=None):
+        X = super().sample(distribution, init_)
+        X = self._fold(X)
+        return X
+
+def orthogonalConv2d(module, tensor_name="weight", triv="expm"):
+    return geotorch.constraints._register_manifold(module, tensor_name, GeotorchStiefelConv2d, triv)
 
 
 def generate_PCA_problem(m, n, p, sdev = 0):
@@ -121,3 +174,4 @@ def generate_PCA_problem(m, n, p, sdev = 0):
     L = (L - L.mean(dim=0)) / L.std(dim=0) # zero mean, st. dev. one
     A = L + sdev * torch.randn(m,n)
     return A
+

@@ -3,7 +3,7 @@
 """
 
 
-import sys
+import sys, os
 from time import time
 sys.path.append("../")
 
@@ -24,8 +24,6 @@ from landing_stiefel import LandingStiefelSGD
 from utils import stiefel_project, stiefel_distance, generate_PCA_problem
 
 from pca_experiment import run_pca_experiment
-
-
 
 
 filename = '1_pca2.pt'
@@ -98,6 +96,8 @@ methods = {
         'device': torch.device('cuda')
     }
 }
+if not os.path.exists('outputs'):
+    os.makedirs('outputs')
 
 print('Starting for file ' + filename)
 
@@ -117,7 +117,7 @@ for problem_id in problems:
             print("\t\tRun: {:d}/{:d}".format(run_id+1,n_runs))
             out[problem_id][method_id][run_id] = run_pca_experiment(problem_params, method_name, method_params)
         
-        # Setup numpy array of all the runs
+        # Setup numpy array of all the runs via reference 
         out_tmp = out[problem_id][method_id]
         out_tmp['arr_train_loss'] = np.array(out_tmp[0]['train_loss'])
         out_tmp['arr_stiefel_distances'] = np.array(out_tmp[0]['stiefel_distances'])
@@ -131,4 +131,4 @@ for problem_id in problems:
         'n_runs': n_runs,
         'methods_labels': methods_labels,
         'methods': methods,
-        'problems': problems}, filename)
+        'problems': problems}, 'outputs/'+filename)

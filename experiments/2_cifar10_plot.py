@@ -26,10 +26,22 @@ batch_size  = 128
 epochs      = 150
 device      = torch.device('cuda')
 
+def scheduler_function(optimizer):
+    return(torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[50,100], gamma=0.1))
 
-method_names = ['landing', 'regularization', 'retraction (QR)']
-file_names = ['2_cifar10_landing_v2.pt', '2_cifar10_regularization_v2.pt', '2_cifar10_geoopt_v2.pt']
+foldername = 'outputs/2_cifar10_VGG16/'
+methods_ids = ['landing1', 'retraction1', 'regularization1', 'regularization2']
+methods_labels = ['landing', 'retraction (QR)', 'regularization lam = 1', 'regularization lam = 1e3']
+n_runs = 5
 
+out_joint = {}
+for method_id, method_label in zip(methods_ids, methods_labels):
+    filename = foldername+method_id+'.pt'
+    out_file = torch.load(filename)
+    out_joint[method_id] = {}
+    out_joint[method_id]['arr_train_loss'] = out_file['arr_train_loss']
+    out_joint[method_id]['arr_stiefel_distances'] = out_file['arr_stiefel_distances']
+    out_joint[method_id]['arr_time_list'] = out_file['arr_time_list']
 
 train_loss_values = {}
 test_loss_values = {}
