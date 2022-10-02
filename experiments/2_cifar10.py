@@ -43,6 +43,9 @@ if not os.path.exists(foldername):
 def scheduler_function(optimizer):
     return(torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[50,100], gamma=0.1))
 
+def scheduler_function_geotorch(optimizer):
+    return(torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[10,20], gamma=0.1))
+
 transform_train = transforms.Compose([
     transforms.RandomCrop(32, padding=4),
     transforms.RandomHorizontalFlip(),
@@ -130,13 +133,13 @@ methods = {
         'method_name': 'trivialization',
         'model': model,
         'batch_size': batch_size,
-        'n_epochs': n_epochs,
+        'n_epochs': 30,
         'lambda_regul': 1,
         'safe_step': None,
         'learning_rate': 1e-1,
         'weight_decay': 5e-4,
-        'init_project': False,
-        'scheduler' : scheduler_function,
+        'init_project': True,
+        'scheduler' : scheduler_function_geotorch,
         'x0': None,
         'device': 'cuda'
     }
@@ -157,10 +160,14 @@ for method_id, method_label in zip(methods, methods_labels):
     # Setup numpy array of all the runs via reference
     out_tmp = out[method_id]
     out_tmp['arr_train_loss'] = np.array(out_tmp[0]['train_loss'])
+    out_tmp['arr_test_loss'] = np.array(out_tmp[0]['test_loss'])
+    out_tmp['arr_test_accuracy'] = np.array(out_tmp[0]['test_accuracy'])
     out_tmp['arr_stiefel_distances'] = np.array(out_tmp[0]['stiefel_distances'])
     out_tmp['arr_time_list'] = np.array(out_tmp[0]['time_list'])
     for run_id in range(1, n_runs):
         out_tmp['arr_train_loss'] = np.vstack((out_tmp['arr_train_loss'], out_tmp[run_id]['train_loss'] ))
+        out_tmp['arr_test_loss'] = np.vstack((out_tmp['arr_test_loss'], out_tmp[run_id]['test_loss'] ))
+        out_tmp['arr_test_accuracy'] = np.vstack((out_tmp['arr_test_accuracy'], out_tmp[run_id]['arr_test_accuracy'] ))
         out_tmp['arr_stiefel_distances'] = np.vstack((out_tmp['arr_stiefel_distances'], out_tmp[run_id]['stiefel_distances'] ))
         out_tmp['arr_time_list'] = np.vstack((out_tmp['arr_time_list'], out_tmp[run_id]['time_list']))
 

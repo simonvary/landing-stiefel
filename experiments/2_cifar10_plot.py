@@ -34,64 +34,62 @@ methods_ids = ['landing1', 'retraction1', 'regularization1', 'regularization2']
 methods_labels = ['landing', 'retraction (QR)', 'regularization lam = 1', 'regularization lam = 1e3']
 n_runs = 5
 
-out_joint = {}
-for method_id, method_label in zip(methods_ids, methods_labels):
-    filename = foldername+method_id+'.pt'
-    out_file = torch.load(filename)
-    out_joint[method_id] = {}
-    out_joint[method_id]['arr_train_loss'] = out_file['arr_train_loss']
-    out_joint[method_id]['arr_stiefel_distances'] = out_file['arr_stiefel_distances']
-    out_joint[method_id]['arr_time_list'] = out_file['arr_time_list']
-
-train_loss_values = {}
-test_loss_values = {}
-test_accuracy_values = {}
-stiefel_distances = {}
-time_list = {}
-
-for method_name,filename in zip(method_names,file_names):
-    checkpoint = torch.load(filename)
-    train_loss_values[method_name] = checkpoint['train_loss_values']
-    test_loss_values[method_name] = checkpoint['test_loss_values']
-    test_accuracy_values[method_name] = checkpoint['test_accuracy_values']
-    stiefel_distances[method_name] = checkpoint['stiefel_distances']
-    time_list[method_name] = checkpoint['time_list']
-
 colormap = plt.cm.Set1
 colors = {}
-for i in range(len(method_names)):
-    colors[method_names[i]] = colormap.colors[i]
+for i in range(len(methods_ids)):
+    colors[methods_ids[i]] = colormap.colors[i]
 
+#sdev_rho = 3
 fig, axs = plt.subplots(3, 1, figsize=(8, 10))
-fig.suptitle('CIFAR-10 Orthogonal VGG16')
+fig.suptitle('VGG16 CIFAR-10')
+for method_id, method_label  in zip(methods_ids, methods_labels):
+    print("\t ploting: "+ method_id)
+    filename = foldername+method_id+'_new.pt'
+    out_file = torch.load(filename)
+    out = out_file['out'][method_id]
 
-# Loss subplot
-for method_name in method_names:
-    times_mins = np.array(time_list[method_name]) / 60
-    axs[0].plot(times_mins, train_loss_values[method_name], '-', label = method_name, color=colors[method_name])
-    axs[0].set_xlabel('time (minutes)')
-    axs[0].set_ylabel('Train loss (objective)')
-    #axs[0].set_xlim(0, 50)
-    axs[0].legend()
+    times_mins_mean = out['arr_time_list'].mean(axis=0) /60
+    train_loss_mean = out['arr_train_loss'].mean(axis=0)
+    train_loss_std = out['arr_train_loss'].std(axis=0)
+    train_loss_min = out['arr_train_loss'].min(axis=0)
+    train_loss_max = out['arr_train_loss'].max(axis=0)
 
-# Test subplot
-for method_name in method_names:
-    times_mins = np.array(time_list[method_name]) / 60
-    axs[1].plot(times_mins, test_accuracy_values[method_name], '-', label = method_name, color=colors[method_name])
-    axs[1].set_xlabel('time (minutes)')
-    axs[1].set_ylabel('Test accuracy')
-    #axs[1].set_xlim(0, 50)
-    axs[1].legend(loc="lower right")
+    test_accuracy_mean = out['arr_test_accuracy'].mean(axis=0)
+    test_accuracy_min = out['arr_test_accuracy'].min(axis=0)
+    test_accuracy_max = out['arr_test_accuracy'].max(axis=0)
 
-# Distances subplot
-for method_name in method_names:
-    times_mins = np.array(time_list[method_name]) / 60
-    if stiefel_distances[method_name]:
-        axs[2].semilogy(times_mins, stiefel_distances[method_name], '--', label = method_name, color=colors[method_name])
-    axs[2].set_xlabel('time (minutes)')
-    axs[2].set_ylabel('Distance to the constraint')
-    axs[2].legend()
 
-fig.subplots_adjust(hspace=0.5)
-plt.savefig("plot_cifar10.pdf", dpi=150)
-plt.show()
+    stiefel_distances_mean = out['arr_stiefel_distances'].mean(axis=0)
+    stiefel_distances_std = out['arr_stiefel_distances'].std(axis=0)
+    stiefel_distances_min = out['arr_stiefel_distances'].min(axis=0)
+    stiefel_distances_max = out['arr_stiefel_distances'].max(axis=0)
+
+
+    axs[0].plot(times_mins_mean, train_loss_mean, '-', label = method_label, color=colors[method_id])
+    #axs[0].fill_between(times_mins_mean, train_loss_mean - sdev_rho*train_loss_std, train_loss_mean+sdev_rho*train_loss_std, alpha=0.3) # Standard deviation
+    axs[0].fill_between(times_mins_mean, train_loss_min, train_loss_max, alpha=0.3, color=colors[method_id])
+    axs[1].semilogy(times_mins_mean, stiefel_distances_mean, '-', label = method_label, color=colors[method_id]) 
+    #axs[1].fill_between(times_mins_mean, stiefel_distances_mean - sdev_rho*stiefel_distances_std, stiefel_distances_mean+sdev_rho*stiefel_distances_std, alpha=0.3) # Standard deviation area
+    axs[1].fill_between(times_mins_mean, stiefel_distances_min, stiefel_distances_max, alpha=0.3, color=colors[method_id])
+
+    axs[2].plot(times_mins_mean, test_accuracy_mean, '-', label = method_label, color=colors[method_id])
+    #axs[0].fill_between(times_mins_mean, train_loss_mean - sdev_rho*train_loss_std, train_loss_mean+sdev_rho*train_loss_std, alpha=0.3) # Standard deviation
+    axs[2].fill_between(times_mins_mean, test_accuracy_min, test_accuracy_max, alpha=0.3, color=colors[method_id])
+
+axs[0].legend()
+axs[1].legend()
+axs[2].legend()
+
+axs[0].set_xlabel('time (min.)')
+axs[0].set_ylabel('Train loss')
+
+axs[1].set_xlabel('time (min.)')
+axs[1].set_ylabel('Stiefel distance')
+
+axs[2].set_xlabel('time (min.)')
+axs[2].set_ylabel('Test accuracy')
+axs[2].set_ylim([0,100])
+
+
+fig.savefig("plot_cifar10.pdf", dpi=150)
+fig.show()
