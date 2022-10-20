@@ -46,6 +46,9 @@ def scheduler_function(optimizer):
 def scheduler_function_geotorch(optimizer):
     return(torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[10,20], gamma=0.1))
 
+def scheduler_function_geotorch2(optimizer):
+    return(torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[20,40], gamma=0.1))
+
 transform_train = transforms.Compose([
     transforms.RandomCrop(32, padding=4),
     transforms.RandomHorizontalFlip(),
@@ -73,20 +76,20 @@ problem['test_loader'] = torch.utils.data.DataLoader(
 # Prepare methods
 methods_labels = ['landing', 'retraction (QR)', 'regularization lam = 1', 'regularization lam = 1e3', 'trivialization']
 methods = {
-    # 'landing1': {
-    #     'method_name': 'landing',
-    #     'model': model,
-    #     'batch_size': batch_size,
-    #     'n_epochs': n_epochs,
-    #     'lambda_regul': 1,
-    #     'safe_step': 0.5,
-    #     'learning_rate': 1e-1,
-    #     'weight_decay': 5e-4,
-    #     'init_project': True,
-    #     'scheduler' : scheduler_function,
-    #     'x0': None,
-    #     'device': 'cuda'
-    # },
+    'landing1_new': {
+        'method_name': 'landing',
+        'model': model,
+        'batch_size': batch_size,
+        'n_epochs': n_epochs,
+        'lambda_regul': 1,
+        'safe_step': 0.5,
+        'learning_rate': 1e-1,
+        'weight_decay': 5e-4,
+        'init_project': True,
+        'scheduler' : scheduler_function,
+        'x0': None,
+        'device': 'cuda'
+    }
     # 'retraction1': {
     #     'method_name': 'retraction',
     #     'model': model,
@@ -129,20 +132,20 @@ methods = {
     #     'x0': None,
     #     'device': 'cuda'
     # },
-    'trivialization1': {
-        'method_name': 'trivialization',
-        'model': model,
-        'batch_size': batch_size,
-        'n_epochs': 30,
-        'lambda_regul': 1,
-        'safe_step': None,
-        'learning_rate': 1e-1,
-        'weight_decay': 5e-4,
-        'init_project': True,
-        'scheduler' : scheduler_function_geotorch,
-        'x0': None,
-        'device': 'cuda'
-    }
+    # 'trivialization1': {
+    #     'method_name': 'trivialization',
+    #     'model': model,
+    #     'batch_size': batch_size,
+    #     'n_epochs': 30,
+    #     'lambda_regul': 1,
+    #     'safe_step': None,
+    #     'learning_rate': 1e-1,
+    #     'weight_decay': 5e-4,
+    #     'init_project': True,
+    #     'scheduler' : scheduler_function_geotorch,
+    #     'x0': None,
+    #     'device': 'cuda'
+    # }
 }
 
 out = {}

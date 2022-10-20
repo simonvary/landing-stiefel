@@ -26,9 +26,9 @@ from utils import stiefel_project, stiefel_distance, generate_PCA_problem
 from pca_experiment import run_pca_experiment
 
 
-filename = '1_pca2.pt'
+filename = '1_pca.pt'
 
-n_runs = 2
+n_runs = 10
 
 methods_labels = ['landing', 'retraction (QR)', 'regularization lam = 1', 'regularization lam = 1e3']
 
@@ -57,7 +57,7 @@ methods = {
         'n_epochs': n_epochs,
         'learning_rate': 1e-2,
         'lambda_regul': 1, 
-        'safe_step': 0.9, 
+        'safe_step': 0.5, 
         'init_project': True,
         'x0': None,
         'device': torch.device('cuda')
@@ -131,4 +131,4 @@ for problem_id in problems:
         'n_runs': n_runs,
         'methods_labels': methods_labels,
         'methods': methods,
-        'problems': problems}, 'outputs/'+filename)
+        'problems': problems}, 'outputs/1_pca/'+filename)
