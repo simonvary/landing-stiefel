@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from config import methods_ids, colors, names, line_styles
 
-with open('data/resnet18.pkl', 'rb') as handle:
+with open('data/pca_test1.pkl', 'rb') as handle:
     results = pickle.load(handle)
 
 metric = 'stiefel_distances'

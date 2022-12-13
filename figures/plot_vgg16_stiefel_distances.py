@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from config import methods_ids, colors, names, line_styles
 
-with open('data/resnet18.pkl', 'rb') as handle:
+with open('data/vgg16.pkl', 'rb') as handle:
     results = pickle.load(handle)
 
 metric = 'stiefel_distances'
@@ -21,9 +21,10 @@ for method_id in methods_ids:
     plt.fill_between(np.median(time, axis=0), np.min(to_plot, axis=0), np.max(to_plot, axis=0), color=colors[method_id], alpha=0.2)
 
 plt.legend(ncol=2, loc='upper right', columnspacing=.5, handlelength=2)
-plt.xlim([None,50])
+plt.xlim([None,35])
+plt.ylim([0.1*1e-9,.5*1e3])
 plt.yscale('log')
 x_ = plt.xlabel('Time (min.)')
 y_ = plt.ylabel('Distance to the constraint $\mathcal{N}(X)$')
 plt.grid()
-plt.savefig('resnet18_%s.pdf' % metric, bbox_inches='tight', bbox_extra_artists=(x_, y_))
+plt.savefig('vgg16_%s.pdf' % metric, bbox_inches='tight', bbox_extra_artists=(x_, y_))
