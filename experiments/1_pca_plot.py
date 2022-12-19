@@ -24,9 +24,11 @@ methods_labels = out_file['methods_labels']
 methods_ids = list(out_file['methods'].keys())
 methods = out_file['methods']
 problems = out_file['problems']
-n_runs = out_file['problems']['n_runs']
+n_runs = out_file['n_runs']
 
 sdev_rho = 5
+
+results = {}
 
 for problem_id in problems:
     problem_params = problems[problem_id]
@@ -45,6 +47,11 @@ for problem_id in problems:
         print("\t ploting: "+ method_id)
         out_method = out[problem_id][method_id]
 
+        out_method = {'time_list': [], 
+                'train_loss': [],
+                'test_loss': [],
+                'stiefel_distances': []}
+
         selected_keys = ('arr_time_list', 'arr_train_loss', 'arr_train_loss', 'arr_stiefel_distances')
 
         for key in selected_keys:
@@ -56,7 +63,7 @@ for problem_id in problems:
             out_method[key + '_max'] = out_method[key].max(axis = 0)
 
         times_mean = out_method['arr_time_list_mean']
-        axs[0].plot(times_mean, out_method['arr_train_loss_mean'], '-', label = method_label, color=colors[method_id])
+        axs[0].semilogy(times_mean, out_method['arr_train_loss_mean'], '-', label = method_label, color=colors[method_id])
 
         axs[0].fill_between(times_mean, out_method['arr_train_loss_min'], out_method['arr_train_loss_max'], alpha=0.3, color=colors[method_id])
         axs[1].semilogy(times_mean, out_method['arr_stiefel_distances_mean'], '-', label = method_label, color=colors[method_id]) 
@@ -68,8 +75,10 @@ for problem_id in problems:
     axs[1].set_xlabel('time (minutes)')
     axs[1].set_ylabel('Stiefel distance (constraint)')
     axs[1].legend()
-    #axs[1].set_xlim((0,1))
-    #axs[0].set_xlim((0,1))
+    #axs[1].set_ylim((0,None))
+    axs[0].set_ylim((-20,None))
+    axs[0].set_xlim((-0.01,1))
+    axs[1].set_xlim((-0.01,1))
     fig.subplots_adjust(hspace=0.5)
     plt.savefig(filename+"_"+problem_id+".pdf", dpi=150)
     plt.show()

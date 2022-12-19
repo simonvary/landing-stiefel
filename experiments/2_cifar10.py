@@ -76,7 +76,7 @@ problem['test_loader'] = torch.utils.data.DataLoader(
 # Prepare methods
 methods_labels = ['landing', 'retraction (QR)', 'regularization lam = 1', 'regularization lam = 1e3', 'trivialization']
 methods = {
-    'landing1_new': {
+    'landing1': {
         'method_name': 'landing',
         'model': model,
         'batch_size': batch_size,

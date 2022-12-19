@@ -4,6 +4,7 @@
 
 
 import sys, os
+import pickle
 from time import time
 sys.path.append("../")
 
@@ -108,6 +109,7 @@ for problem_id in problems:
     out[problem_id] = {}
     print('Starting with problem: '+ problem_id)
 
+    results = {}
     for method_id, method_label in zip(methods, methods_labels):
         method_params = methods[method_id]
         method_name = methods[method_id]['method_name']
@@ -119,16 +121,23 @@ for problem_id in problems:
         
         # Setup numpy array of all the runs via reference 
         out_tmp = out[problem_id][method_id]
-        out_tmp['arr_train_loss'] = np.array(out_tmp[0]['train_loss'])
-        out_tmp['arr_stiefel_distances'] = np.array(out_tmp[0]['stiefel_distances'])
-        out_tmp['arr_time_list'] = np.array(out_tmp[0]['time_list'])
+        out_tmp['train_loss'] = np.array(out_tmp[0]['train_loss'])
+        out_tmp['stiefel_distances'] = np.array(out_tmp[0]['stiefel_distances'])
+        out_tmp['time_list'] = np.array(out_tmp[0]['time_list'])
         for run_id in range(1, n_runs):
-            out_tmp['arr_train_loss'] = np.vstack((out_tmp['arr_train_loss'], out_tmp[run_id]['train_loss'] ))
-            out_tmp['arr_stiefel_distances'] = np.vstack((out_tmp['arr_stiefel_distances'], out_tmp[run_id]['stiefel_distances'] ))
-            out_tmp['arr_time_list'] = np.vstack((out_tmp['arr_time_list'], out_tmp[run_id]['time_list']))
+            out_tmp['train_loss'] = np.vstack((out_tmp['train_loss'], out_tmp[run_id]['train_loss'] ))
+            out_tmp['stiefel_distances'] = np.vstack((out_tmp['stiefel_distances'], out_tmp[run_id]['stiefel_distances'] ))
+            out_tmp['time_list'] = np.vstack((out_tmp['time_list'], out_tmp[run_id]['time_list']))
+        results[method_id] = {
+            'time_list' : out_tmp['time_list'],
+            'stiefel_distances': out_tmp['stiefel_distances'],
+            'train_loss' : out_tmp['train_loss']
+        }
         torch.save({
         'out': out,
         'n_runs': n_runs,
         'methods_labels': methods_labels,
         'methods': methods,
         'problems': problems}, 'outputs/1_pca/'+filename)
+    with open('outputs/1_pca/'+problem_id+'.pkl', 'wb') as handle:
+        pickle.dump(results, handle, protocol=pickle.HIGHEST_PROTOCOL)
