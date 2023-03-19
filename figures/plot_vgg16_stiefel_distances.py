@@ -21,8 +21,8 @@ for method_id in methods_ids:
     plt.fill_between(np.median(time, axis=0), np.min(to_plot, axis=0), np.max(to_plot, axis=0), color=colors[method_id], alpha=0.2)
 
 plt.legend(ncol=2, loc='upper right', columnspacing=.5, handlelength=2)
-plt.xlim([None,35])
-plt.ylim([0.1*1e-9,.5*1e3])
+#plt.xlim([None,35])
+#plt.ylim([0.1*1e-9,.5*1e3])
 plt.yscale('log')
 x_ = plt.xlabel('Time (min.)')
 y_ = plt.ylabel('Distance to the constraint $\mathcal{N}(X)$')
