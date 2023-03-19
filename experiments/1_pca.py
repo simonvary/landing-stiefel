@@ -2,8 +2,7 @@
     Benchmark for PCA
 """
 
-
-import sys, os
+import sys, os, random
 import pickle
 from time import time
 sys.path.append("../")
@@ -27,6 +26,11 @@ from utils import stiefel_project, stiefel_distance, generate_PCA_problem
 from pca_experiment import run_pca_experiment
 
 
+seed = 123
+np.random.seed(seed)
+torch.manual_seed(seed)
+random.seed(seed)
+
 filename = '1_pca.pt'
 
 n_runs = 10
@@ -34,21 +38,40 @@ n_runs = 10
 methods_labels = ['landing', 'retraction (QR)', 'regularization lam = 1', 'regularization lam = 1e3']
 
 batch_size = 128
-n_epochs = 30
+n_epochs = 60
+
+def scheduler_function(optimizer):
+    return(torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[30,50], gamma=0.1))
+
+# n_epochs3 = 80
+# def scheduler_function_test3(optimizer):
+#     return(torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[50,70], gamma=0.1))
 
 problems = {
-    'test1': {
-        'n_samples' : 10000,
-        'n_features': 2000,
-        'p_subspace': 1000,
-        'noise_sdev': 1e-2
-    }, 
+    # 'test1': {
+    #     'n_samples' : 15000,
+    #     'n_features': 5000, 
+    #     'p_subspace': 200, 
+    #     'noise_sdev': 1e-1 
+    # }, 
     'test2': {
-        'n_samples' : 25000,
-        'n_features': 5000,
-        'p_subspace': 2000,
-        'noise_sdev': 1e-1
-    }
+       'n_samples' : 15000,
+       'n_features': 5000,
+       'p_subspace': 500,
+       'noise_sdev': 1e-1,
+    },
+    # 'test3': {
+    #    'n_samples' : 15000,
+    #    'n_features': 5000,
+    #    'p_subspace': 1000,
+    #    'noise_sdev': 1e-1
+    # },
+    #'test4': {
+    #    'n_samples' : 15000,
+    #    'n_features': 5000,
+    #    'p_subspace': 100,
+    #    'noise_sdev': 1e-1
+    # }
 }
 
 methods = {
@@ -56,10 +79,11 @@ methods = {
         'method_name': 'landing',
         'batch_size': batch_size,
         'n_epochs': n_epochs,
-        'learning_rate': 1e-2,
-        'lambda_regul': 1, 
+        'learning_rate': 1e-3,
+        'lambda_regul': 10, 
         'safe_step': 0.5, 
         'init_project': True,
+        'scheduler' : scheduler_function,
         'x0': None,
         'device': torch.device('cuda')
     },
@@ -67,10 +91,11 @@ methods = {
         'method_name': 'retraction',
         'batch_size': batch_size,
         'n_epochs': n_epochs,
-        'learning_rate': 1e-2,
+        'learning_rate': 1e-3,
         'lambda_regul': 1, 
         'safe_step': 0.5, 
         'init_project': True,
+        'scheduler' : scheduler_function,
         'x0': None,
         'device': torch.device('cuda')
     },
@@ -79,9 +104,10 @@ methods = {
         'batch_size': batch_size,
         'n_epochs': n_epochs,
         'learning_rate': 1e-3,
-        'lambda_regul': 1, 
+        'lambda_regul': 1e2, 
         'safe_step': None, 
         'init_project': True,
+        'scheduler' : scheduler_function,
         'x0': None,
         'device': torch.device('cuda')
     },
@@ -89,10 +115,11 @@ methods = {
         'method_name': 'regularization',
         'batch_size': batch_size,
         'n_epochs': n_epochs,
-        'learning_rate': 1e-4,
-        'lambda_regul': 1e3, 
+        'learning_rate': 1e-5,
+        'lambda_regul': 1e4, 
         'safe_step': None, 
         'init_project': True,
+        'scheduler' : scheduler_function,
         'x0': None,
         'device': torch.device('cuda')
     }

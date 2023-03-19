@@ -37,6 +37,7 @@ def run_pca_experiment(problem_parameters, method_name, method_parameters):
     safe_step = method_parameters['safe_step']
     learning_rate = method_parameters['learning_rate']
     init_project = method_parameters['init_project']
+    scheduler = method_parameters['scheduler']
     x0 = method_parameters['x0']
     device = method_parameters['device']
 
@@ -68,7 +69,8 @@ def run_pca_experiment(problem_parameters, method_name, method_parameters):
         optimizer = torch.optim.SGD((x,), lr=learning_rate)
     else:
         raise ValueError('Unrecognized method_name.')
-    #scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[round(n_epochs/2),round(n_epochs*3/4)], gamma=0.1)
+    
+    scheduler = scheduler(optimizer)
 
     # Train
     train_loss = [objective(x)-loss_star]
@@ -95,8 +97,7 @@ def run_pca_experiment(problem_parameters, method_name, method_parameters):
             time_list.append(time_list[-1] + (time() - time_start))
         train_loss.append(objective(x)-loss_star)
         stiefel_distances.append(stiefel_distance((x,), device).item())
-
-        #scheduler.step()
+        scheduler.step()
     
     return({'train_loss' : train_loss,
             'stiefel_distances' : stiefel_distances,
