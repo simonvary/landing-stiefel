@@ -2,4 +2,4 @@
 
 ## ICA experiment
 
-To run the ICA experiment, you need to install benchopt (`pip install benchopt`), and then run `benchopt run benchmarks/benchmark_ica --n-repetition 5`.
+To run the ICA experiment, you need to install benchopt (`pip install benchopt`), and then run `benchopt run benchmarks/benchmark_ica --n-repetitions 5`.
