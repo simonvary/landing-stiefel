@@ -1,3 +1,5 @@
+import math
+
 import numpy as np
 
 import torch
@@ -140,6 +142,7 @@ class LandingStiefelSGD(OptimMixin, torch.optim.Optimizer):
         normalize_columns=False,
         safe_step=0.5,
         check_type=False,
+        use_vr=False
     ):
         if lr < 0.0:
             raise ValueError("Invalid learning rate: {}".format(lr))
@@ -163,6 +166,7 @@ class LandingStiefelSGD(OptimMixin, torch.optim.Optimizer):
             normalize_columns=normalize_columns,
             safe_step=safe_step,
             check_type=check_type,
+            use_vr=use_vr
         )
 
         if nesterov and (momentum <= 0 or dampening != 0):
@@ -255,3 +259,30 @@ class LandingStiefelSGD(OptimMixin, torch.optim.Optimizer):
                 if "momentum_buffer" in param_state:
                     buf = param_state["momentum_buffer"]
                     buf.copy_(manifold.proju(p, buf))
+
+
+
+
+
+if __name__ == '__main__':
+    m, p = 10, 5
+    n = 200
+    batch_size = 7
+    data = torch.randn(n, m)
+    x = torch.randn(m, p)
+    x = torch.nn.Parameter(x)
+    n_epochs = 3
+    optim = LandingStiefelSGD(x, lr=0.1, lambda_regul=1.)
+    optim.zero_grad()
+
+    n_batch = math.ceil(n // batch_size)
+    for i in range(n_epochs):
+        randperm = np.random.permutation(n_batch)
+        for idx in randperm:
+            batch = slice(idx * batch_size, (idx + 1) * batch_size)
+            x = data[slice]
+            this_size, _ = x.shape
+            loss = -torch.linalg.norm(data.mm(x)) ** 2 / this_size
+            loss.backward()
+            optim.step()
+    

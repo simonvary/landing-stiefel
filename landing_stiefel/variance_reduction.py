@@ -4,7 +4,8 @@ from scipy.linalg import expm
 
 
 def proj(x):
-    return np.linalg.qr(x)[0]
+    u, _, v = np.linalg.svd(x)
+    return np.dot(u, v)
 
 def landing_algorithm(fun_and_grad, x0, random_idxs, n_batch,
                       step_size, lbda, store_every, use_vr=True):
@@ -100,6 +101,7 @@ def optimizer(
             elif retraction == 'proj':
                 x = proj(x - step_size * direction)
     return x
+
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
