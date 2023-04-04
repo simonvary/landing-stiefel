@@ -12,8 +12,8 @@ class Dataset(BaseDataset):
 
     parameters = {
         'n_samples, n_features': [
-            (10000, 5),
-            (100000, 5)
+            (100000, 20),
+            (10000, 10)
         ]
     }
 
@@ -32,4 +32,4 @@ class Dataset(BaseDataset):
         mixing = np.dot(W, mixing)
         data = dict(X=X, mixing=mixing)
 
-        return self.n_features, data
+        return data

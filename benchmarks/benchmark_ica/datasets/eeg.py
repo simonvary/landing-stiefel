@@ -43,4 +43,4 @@ class Dataset(BaseDataset):
         transf = np.linalg.svd(rng.randn(self.n_features, self.n_features))[0]
         X = X.dot(transf.T)
         data = dict(X=X, mixing=np.eye(self.n_features))
-        return self.n_features, data
+        return data

@@ -2,13 +2,13 @@ from benchopt import BaseSolver, safe_import_context
 from benchopt.stopping_criterion import SufficientProgressCriterion
 
 
-import pdb
+# import pdb
 
 with safe_import_context() as import_ctx:
     import numpy as np
     from scipy.linalg import expm
-    import sys
-    sys.path.append("../../")
+    # import sys
+    # sys.path.append("../../")
     from landing_stiefel.variance_reduction import optimizer
     IcaOracle = import_ctx.import_from(
         'helper_ica', 'IcaOracle'
@@ -33,6 +33,14 @@ def init_memory(
     return memory
 
 
+def rule_algo(batch_size, use_vr, retraction):
+    if use_vr:
+        if batch_size != "full":
+            return retraction == "landing"
+        else:
+            return False
+    return True
+
 
 class Solver(BaseSolver):
     name = 'Riemannian SGD' 
@@ -56,16 +64,27 @@ class Solver(BaseSolver):
         self.lbda = 1.
         self.oracle = IcaOracle(X)
 
+
+    def skip(self, *args, **kwargs):
+        return not rule_algo(self.batch_size, self.use_vr, self.retraction), None
+
+
     def run(self, callback):
-        eval_freq = constants.EVAL_FREQ  # // self.batch_size
+        eval_freq = constants.EVAL_FREQ
+        if self.batch_size == "full":
+            eval_freq = 1
         rng = np.random.RandomState(constants.RANDOM_STATE)
 
         X = self.X
         
         n_samples, n_features = X.shape
         x = np.eye(n_features)
+        if self.batch_size == "full":
+            batch_size = n_samples
+        else:
+            batch_size = self.batch_size
         sampler = MinibatchSampler(
-            self.X.shape[0], batch_size=self.batch_size
+            n_samples, batch_size=batch_size
         )
         if self.use_vr:
             memory = np.zeros((sampler.n_batches + 1, n_features, n_features))
