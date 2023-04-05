@@ -76,20 +76,20 @@ problem['test_loader'] = torch.utils.data.DataLoader(
 # Prepare methods
 methods_labels = ['landing', 'retraction (QR)', 'regularization lam = 1', 'regularization lam = 1e3', 'trivialization']
 methods = {
-    # 'landing1': {
-    #     'method_name': 'landing',
-    #     'model': model,
-    #     'batch_size': batch_size,
-    #     'n_epochs': n_epochs,
-    #     'lambda_regul': 1,
-    #     'safe_step': 0.5,
-    #     'learning_rate': 1e-1,
-    #     'weight_decay': 5e-4,
-    #     'init_project': True,
-    #     'scheduler' : scheduler_function,
-    #     'x0': None,
-    #     'device': 'cuda'
-    # }
+    'landing1': {
+        'method_name': 'landing',
+        'model': model,
+        'batch_size': batch_size,
+        'n_epochs': n_epochs,
+        'lambda_regul': 1,
+        'safe_step': 0.5,
+        'learning_rate': 1e-1,
+        'weight_decay': 5e-4,
+        'init_project': True,
+        'scheduler' : scheduler_function,
+        'x0': None,
+        'device': 'cuda'
+    },
     'retraction1': {
         'method_name': 'retraction',
         'model': model,
@@ -132,20 +132,20 @@ methods = {
         'x0': None,
         'device': 'cuda'
     },
-    # 'trivialization1': {
-    #     'method_name': 'trivialization',
-    #     'model': model,
-    #     'batch_size': batch_size,
-    #     'n_epochs': 30,
-    #     'lambda_regul': 1,
-    #     'safe_step': None,
-    #     'learning_rate': 1e-1,
-    #     'weight_decay': 5e-4,
-    #     'init_project': True,
-    #     'scheduler' : scheduler_function_geotorch,
-    #     'x0': None,
-    #     'device': 'cuda'
-    # }
+    'trivialization1': {
+        'method_name': 'trivialization',
+        'model': model,
+        'batch_size': batch_size,
+        'n_epochs': 30,
+        'lambda_regul': 1,
+        'safe_step': None,
+        'learning_rate': 1e-1,
+        'weight_decay': 5e-4,
+        'init_project': True,
+        'scheduler' : scheduler_function_geotorch,
+        'x0': None,
+        'device': 'cuda'
+    }
 }
 
 out = {}
@@ -159,20 +159,6 @@ for method_id, method_label in zip(methods, methods_labels):
     for run_id in range(n_runs):
         print("\t\tRun: {:d}/{:d}".format(run_id+1,n_runs))
         out[method_id][run_id] = run_cifar10_experiment(problem, method_name, methods[method_id],run_file_name=foldername+method_id+'_run'+str(run_id)+'.pt')
-
-    # Setup numpy array of all the runs via reference
-    # out_tmp = out[method_id]
-    # out_tmp['arr_train_loss'] = np.array(out_tmp[0]['train_loss'])
-    # out_tmp['arr_test_loss'] = np.array(out_tmp[0]['test_loss'])
-    # out_tmp['arr_test_accuracy'] = np.array(out_tmp[0]['test_accuracy'])
-    # out_tmp['arr_stiefel_distances'] = np.array(out_tmp[0]['stiefel_distances'])
-    # out_tmp['arr_time_list'] = np.array(out_tmp[0]['time_list'])
-    # for run_id in range(1, n_runs):
-    #     out_tmp['arr_train_loss'] = np.vstack((out_tmp['arr_train_loss'], out_tmp[run_id]['train_loss'] ))
-    #     out_tmp['arr_test_loss'] = np.vstack((out_tmp['arr_test_loss'], out_tmp[run_id]['test_loss'] ))
-    #     out_tmp['arr_test_accuracy'] = np.vstack((out_tmp['arr_test_accuracy'], out_tmp[run_id]['arr_test_accuracy'] ))
-    #     out_tmp['arr_stiefel_distances'] = np.vstack((out_tmp['arr_stiefel_distances'], out_tmp[run_id]['stiefel_distances'] ))
-    #     out_tmp['arr_time_list'] = np.vstack((out_tmp['arr_time_list'], out_tmp[run_id]['time_list']))
 
     torch.save({
         'out': out[method_id],

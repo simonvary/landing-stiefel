@@ -43,35 +43,31 @@ n_epochs = 60
 def scheduler_function(optimizer):
     return(torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[30,50], gamma=0.1))
 
-# n_epochs3 = 80
-# def scheduler_function_test3(optimizer):
-#     return(torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[50,70], gamma=0.1))
-
 problems = {
-    # 'test1': {
-    #     'n_samples' : 15000,
-    #     'n_features': 5000, 
-    #     'p_subspace': 200, 
-    #     'noise_sdev': 1e-1 
-    # }, 
+    'test1': {
+        'n_samples' : 15000,
+        'n_features': 5000, 
+        'p_subspace': 200, 
+        'noise_sdev': 1e-1 
+    }, 
     'test2': {
        'n_samples' : 15000,
        'n_features': 5000,
        'p_subspace': 500,
        'noise_sdev': 1e-1,
     },
-    # 'test3': {
-    #    'n_samples' : 15000,
-    #    'n_features': 5000,
-    #    'p_subspace': 1000,
-    #    'noise_sdev': 1e-1
-    # },
-    #'test4': {
-    #    'n_samples' : 15000,
-    #    'n_features': 5000,
-    #    'p_subspace': 100,
-    #    'noise_sdev': 1e-1
-    # }
+    'test3': {
+       'n_samples' : 15000,
+       'n_features': 5000,
+       'p_subspace': 1000,
+       'noise_sdev': 1e-1
+    },
+    'test4': {
+       'n_samples' : 15000,
+       'n_features': 5000,
+       'p_subspace': 100,
+       'noise_sdev': 1e-1
+    }
 }
 
 methods = {
