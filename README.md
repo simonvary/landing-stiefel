@@ -23,11 +23,12 @@ To reproduce the plots using the provided convergence data, you can use the `mak
 ## Cite
 
 If you use this code please cite:
-`@misc{Ablin2023Infeasible,
+```
+@misc{Ablin2023Infeasible,
   title = {{Infeasible Deterministic, Stochastic, and Variance-Reduction Algorithms for Optimization under Orthogonality Constraints}},
   author = {Ablin, Pierre and Vary, Simon and Gao, Bin and Absil, P.-A.},
   year = {2023},
   month = mar,
   eprint = {arXiv:2303.16510}
 }
-`
+```
