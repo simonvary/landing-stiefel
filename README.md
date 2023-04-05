@@ -2,7 +2,7 @@
 
 This repository contains the code for the landing algorithm under the orthogonal Stiefel manifold constraint without the use of retractions. 
 
-The algorithm is implemented as a PyTorch optimizer; see `landing-stiefel/landing_stiefel/optimizer.py` with the extral `lambda_regul=1` and `safe_stepsize=0.5` parameters.
+The algorithm is implemented as a PyTorch optimizer; see `landing-stiefel/landing_stiefel/optimizer.py`.
 
 You can find the paper [here](https://arxiv.org/abs/2303.16510).
 
