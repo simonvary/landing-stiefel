@@ -6,7 +6,7 @@ The algorithm is implemented as a PyTorch optimizer; see `landing-stiefel/landin
 
 You can find the paper [here](https://arxiv.org/abs/2303.16510).
 
-![Landing diagram](https://github.com/simonvary/landing-stiefel/blob/main/figures/landing_diagram.png?raw=true)
+![Landing diagram](https://github.com/simonvary/landing-stiefel/blob/main/figures/landing_diagram.png?raw=true | width=200)
 
 ## ICA experiment
 
