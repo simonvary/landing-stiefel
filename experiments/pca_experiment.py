@@ -105,6 +105,10 @@ def run_pca_experiment(problem_parameters, method_name, method_parameters):
     })
 
 if __name__ == "__main__":
+
+    def scheduler_function(optimizer):
+        return(torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[30,50], gamma=0.1))
+
     # Test
     problem_parameters = {
         'n_samples' : 10000,
@@ -121,6 +125,7 @@ if __name__ == "__main__":
         'lambda_regul': 1, 
         'safe_step': 0.5, 
         'init_project': True,
+        'scheduler' : scheduler_function,
         'x0': None,
         'device': torch.device('cuda')
     }

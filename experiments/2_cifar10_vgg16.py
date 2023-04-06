@@ -33,8 +33,8 @@ n_runs = 5
 
 model_name = "VGG16"
 model = VGG16
-filename = 'outputs/2_cifar10_VGG16.pt'
-foldername = 'outputs/2_cifar10_VGG16/'
+filename = 'outputs/2_cifar10_'+model_name+'.pt'
+foldername = 'outputs/2_cifar10_'+model_name+'/'
 
 if not os.path.exists(foldername):
     os.makedirs(foldername)

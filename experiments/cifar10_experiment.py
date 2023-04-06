@@ -193,32 +193,35 @@ if __name__ == "__main__":
 
     batch_size = 128
 
+    # switch download_dataset to true if running the first time
+    download_dataset = False
+
     # Prepare the problem
     problem = {}
     problem['train_dataset'] = datasets.CIFAR10(
-        root='../data', train=True, download=False, transform=transform_train)
+        root='../data', train=True, download=download_dataset, transform=transform_train)
     problem['train_loader'] = torch.utils.data.DataLoader(
         problem['train_dataset'] , batch_size=batch_size, shuffle=True, num_workers=2)
 
     problem['test_dataset'] = datasets.CIFAR10(
-        root='../data', train=False, download=False, transform=transform_test)
+        root='../data', train=False, download=download_dataset, transform=transform_test)
     problem['test_loader'] = torch.utils.data.DataLoader(
         problem['test_dataset'], batch_size=batch_size, shuffle=False, num_workers=2)
 
     method = {
         'model': VGG16,
         'batch_size': batch_size,
-        'n_epochs': 150,
+        'n_epochs': 30,
         'lambda_regul': 1,
         'safe_step': 0.5,
         'learning_rate': 1e-1,
         'weight_decay': 5e-4,
         'init_project': True,
-        'scheduler' : lambda optimizer: torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[50,100], gamma=0.1),
+        'scheduler' : lambda optimizer: torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[10,20], gamma=0.1),
         'x0': None,
         'device': 'cuda'
     }
-    method_name = 'trivialization'
+    method_name = 'landing'
     filename = 'test_cifar10_experiment.pt'
     print('Method name: '+ method_name)
     print('File name: '+ filename)
