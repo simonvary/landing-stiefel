@@ -6,6 +6,8 @@ The algorithm is implemented as a PyTorch optimizer; see `landing-stiefel/landin
 
 You can find the paper [here](https://arxiv.org/abs/2303.16510).
 
+![Landing diagram](https://github.com/simonvary/landing-stiefel/blob/main/figures/landing_diagram.png?raw=true)
+
 ## ICA experiment
 
 To run the ICA experiment, you need to install benchopt (`pip install benchopt`), and then run `benchopt run benchmarks/benchmark_ica --n-repetitions 5`.
